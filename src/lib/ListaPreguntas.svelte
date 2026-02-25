@@ -6,7 +6,7 @@
   /** @type {{ preguntas: any[], cargando: boolean, oneditar: (p:any)=>void }} */
   let { preguntas, cargando, oneditar } = $props();
 
-  const META = 25;
+  const META = 20;
 
   const TIPO_CLASE = {
     'Opción Múltiple': 'tipo-om',
