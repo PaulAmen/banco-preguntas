@@ -288,14 +288,31 @@ tbody tr:last-child td:last-child { border-bottom-right-radius: 8px; }
   .logo-header { height: 38px; }
   .app-header .usuario { display: none; }
   
-  .app-grid { padding: 1rem 0.5rem; gap: 1rem; }
-  .panel { padding: 1rem; border-radius: 0; border-left: none; border-right: none; }
+  .app-grid { padding: 1rem 0.5rem; gap: 1.5rem; display: flex; flex-direction: column; align-items: center; }
+  
+  /* Formulario más contenido, no necesita ser full width si la pantalla lo permite */
+  .col-izq { 
+    width: 100%;
+    max-width: 480px; 
+    border-radius: 16px; 
+    margin: 0 auto;
+    box-shadow: var(--sombra-lg);
+  }
+
+  /* Lista de preguntas con más presencia */
+  .col-der { 
+    width: 100%; 
+    border-radius: 12px;
+    padding: 1rem 0.5rem;
+  }
+  
+  .panel { padding: 1.25rem; }
   
   .par-campos { grid-template-columns: 1fr; gap: 0.5rem; }
   .form-group label { font-size: 13px; }
   .form-group input, .form-group select, .form-group textarea { 
     padding: 0.75rem; 
-    font-size: 16px; /* Evita zoom automático en iOS */
+    font-size: 16px; 
   }
 
   .seccion-label { 
@@ -314,10 +331,9 @@ tbody tr:last-child td:last-child { border-bottom-right-radius: 8px; }
   .acciones button { width: 100%; padding: 0.85rem; margin-bottom: 0.5rem; }
   .acciones button:last-child { margin-bottom: 0; }
   
-  thead th { padding: 0.75rem 0.5rem; font-size: 13px; }
+  thead th { padding: 0.75rem 0.5rem; font-size: 12px; }
   tbody td { padding: 0.75rem 0.5rem; font-size: 13px; }
   
-  /* Asegurar que las celdas no sean diminutas */
   .tipo-badge { padding: 0.15rem 0.4rem; font-size: 10px; }
 }
 
