@@ -25,16 +25,21 @@
     error = '';
     try {
       const payload = decodeJwt(response.credential);
+      const email   = payload.email || '';
 
-      // Validar dominio
-      if (!payload.email?.endsWith('@' + DOMINIO)) {
-        error = `Acceso restringido al dominio @${DOMINIO}`;
+      // Validar formato nombre.apellido@unesum.edu.ec
+      // Acepta letras, números, guiones y puntos antes del @
+      const regex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+      const esFormatoCorrecto = email.split('@')[0].includes('.');
+
+      if (!email.endsWith('@' + DOMINIO) || !esFormatoCorrecto) {
+        error = `Use su correo institucional: nombre.apellido@${DOMINIO}`;
         google.accounts.id.disableAutoSelect();
         return;
       }
 
       onlogin({
-        email:   payload.email,
+        email:   email,
         name:    payload.name,
         picture: payload.picture,
       });
@@ -73,30 +78,28 @@
 </script>
 
 <div class="login-page">
-  <div class="login-card">
-    <div class="logo-container">
-      <img src={logo} alt="Logo Carrera Educación" class="logo" />
-    </div>
-    <h2>Banco de Preguntas</h2>
-    <p>Carrera Educación &bull; UNESUM</p>
-
-    {#if error}
-      <div class="alerta alerta-err" style="margin-bottom:1rem">
-        <span>⚠️</span> {error}
+  <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%;">
+    <div class="login-card">
+      <div class="logo-container">
+        <img src={logo} alt="Logo Carrera Educación" class="logo" />
       </div>
-    {/if}
+      <h2>Banco de Preguntas</h2>
+      <p>Carrera Educación &bull; UNESUM</p>
 
-    <!-- El SDK de GIS renderiza el botón aquí -->
-    <div style="display: flex; justify-content: center; margin-bottom: 1.5rem;">
-      <div bind:this={contenedor}></div>
+      {#if error}
+        <div class="alerta alerta-err" style="margin-bottom:1rem">
+          <span>⚠️</span> {error}
+        </div>
+      {/if}
+
+      <!-- El SDK de GIS renderiza el botón aquí -->
+      <div style="display: flex; justify-content: center; margin-bottom: 0.5rem;">
+        <div bind:this={contenedor}></div>
+      </div>
     </div>
-
-    <p style="font-size:13px; color:var(--texto-sub)">
-      Acceso exclusivo con cuenta institucional<br/>
-      <strong>@{DOMINIO}</strong>
-    </p>
   </div>
-  <div style="text-align:center; color:rgba(255,255,255,0.8); font-size:14px; display: flex; flex-direction: column; gap: 0.5rem;">
+  
+  <div style="text-align:center; color:rgba(255,255,255,0.8); font-size:14px; display: flex; flex-direction: column; gap: 0.5rem; padding-bottom: 1.5rem;">
     <p>UNESUM &bull; Carrera Educación &bull; Jipijapa, Manabí</p>
     <p style="font-size: 13px; opacity: 0.9;">by: <a href="mailto:paul.amen@unesum.edu.ec" style="color:white; font-weight: 600;">paul.amen@unesum.edu.ec</a></p>
   </div>
