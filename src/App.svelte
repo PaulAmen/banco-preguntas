@@ -111,10 +111,11 @@
 {:else}
   <div class="app-container">
     <!-- Header -->
-    <header class="app-header" style="height: 72px;">
+    <header class="app-header">
       <h1>
-        <img src={logo} alt="logo" style="height:54px; width:auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));" />
-        <span>Carrera Educación &bull; Banco de Preguntas</span>
+        <img src={logo} alt="logo" class="logo-header" />
+        <span class="full-title">Carrera Educación &bull; Banco de Preguntas</span>
+        <span class="short-title">Carrera Educación</span>
       </h1>
       <div style="display:flex; align-items:center; gap:.75rem">
         <span class="usuario">{user.name || user.email}</span>
