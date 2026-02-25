@@ -164,7 +164,7 @@
 
     <!-- ── Opción Múltiple / Casos de Uso ── -->
     {#if form.Tipo_Pregunta === 'Opción Múltiple' || form.Tipo_Pregunta === 'Casos de Uso'}
-      <div class="seccion-label">Opciones de respuesta</div>
+      <div class="seccion-label">🎯 Opciones de respuesta</div>
       {#each [
         ['Opcion_A_o_Concepto1', 'A'],
         ['Opcion_B_o_Definicion1', 'B'],
@@ -178,7 +178,7 @@
         </div>
       {/each}
       <div class="form-group">
-        <label for="resp-om">Respuesta Correcta</label>
+        <label for="resp-om">✅ Respuesta Correcta</label>
         <select id="resp-om" bind:value={form.Respuesta_Correcta} required disabled={cargando}>
           <option value="">— Seleccione —</option>
           {#each ['A', 'B', 'C', 'D'] as op}
@@ -191,7 +191,7 @@
     <!-- ── Verdadero o Falso ── -->
     {#if form.Tipo_Pregunta === 'Verdadero o Falso'}
       <div class="form-group">
-        <label for="resp-vf">Respuesta Correcta</label>
+        <label for="resp-vf">⚖️ Respuesta Correcta</label>
         <select id="resp-vf" bind:value={form.Respuesta_Correcta} required disabled={cargando}>
           <option value="">— Seleccione —</option>
           <option value="Verdadero">Verdadero</option>
@@ -202,7 +202,7 @@
 
     <!-- ── Unir con Líneas ── -->
     {#if form.Tipo_Pregunta === 'Unir con Líneas'}
-      <div class="seccion-label">Pares Concepto — Definición</div>
+      <div class="seccion-label">🔗 Pares Concepto — Definición</div>
       {#each [
         ['Opcion_A_o_Concepto1',  'Opcion_B_o_Definicion1',  1],
         ['Opcion_C_o_Concepto2',  'Opcion_D_o_Definicion2',  2],
@@ -226,7 +226,7 @@
 
     <!-- Justificación (siempre presente) -->
     <div class="form-group">
-      <label for="justif">Justificación</label>
+      <label for="justif">💡 Justificación</label>
       <textarea id="justif" bind:value={form.Justificacion}
                 rows="3"
                 placeholder="Explica por qué la respuesta es correcta…"
@@ -238,12 +238,12 @@
   <!-- Acciones -->
   <div class="acciones">
     <button type="submit" class="btn-primary" disabled={cargando || !form.Tipo_Pregunta}>
-      {#if cargando}<span class="spinner"></span>{/if}
-      {modoEdicion ? 'Actualizar' : 'Guardar Nueva'}
+      {#if cargando}<span class="spinner"></span>{:else}💾{/if}
+      {modoEdicion ? 'Actualizar Pregunta' : 'Guardar Nueva Pregunta'}
     </button>
     {#if modoEdicion}
       <button type="button" class="btn-secondary" onclick={oncancelar} disabled={cargando}>
-        Cancelar
+        ✖️ Cancelar
       </button>
     {/if}
   </div>

@@ -26,24 +26,22 @@
 
 <!-- Contador de progreso -->
 <div class="progreso">
-  {preguntas.length} / {META}
-  <span>preguntas registradas</span>
+  {preguntas.length} <span>/ {META} preguntas registradas</span>
 </div>
 
 <!-- Barra de progreso visual -->
-<div style="height:8px; background:#e8eaed; border-radius:4px; margin-bottom:1.25rem; overflow:hidden">
+<div style="height:12px; background:var(--azul-tenue); border-radius:999px; margin-bottom:1.5rem; overflow:hidden; border: 1px solid var(--borde)">
   <div style="
     height:100%;
     width:{Math.min(preguntas.length / META * 100, 100)}%;
-    background: {preguntas.length >= META ? '#1e8e3e' : '#1a73e8'};
-    transition: width .4s;
-    border-radius:4px
+    background: {preguntas.length >= META ? 'var(--ok)' : 'var(--azul)'};
+    transition: width .6s cubic-bezier(0.34, 1.56, 0.64, 1);
   "></div>
 </div>
 
 {#if preguntas.length >= META}
-  <div class="alerta alerta-ok" style="margin-bottom:1rem">
-    ¡Banco completo! Has registrado las {META} preguntas requeridas.
+  <div class="alerta alerta-ok" style="margin-bottom:1.5rem">
+    <span>✨</span> ¡Banco completo! Has registrado las {META} preguntas requeridas.
   </div>
 {/if}
 

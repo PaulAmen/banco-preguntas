@@ -6,6 +6,7 @@
   import Formulario     from './lib/Formulario.svelte';
   import ListaPreguntas from './lib/ListaPreguntas.svelte';
   import { fetchPreguntas, guardarPregunta } from './lib/api.js';
+  import logo           from './assets/logo.png';
 
   // ── Estado global ───────────────────────────────────────────
   let user              = $state(null);  // { email, name, picture }
@@ -109,22 +110,28 @@
   <Login onlogin={handleLogin} />
 {:else}
   <!-- Header -->
-  <header class="app-header">
-    <h1>Banco de Preguntas · UNESUM</h1>
+  <header class="app-header" style="height: 72px;">
+    <h1>
+      <img src={logo} alt="logo" style="height:54px; width:auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));" />
+      <span>Carrera Educación &bull; Banco de Preguntas</span>
+    </h1>
     <div style="display:flex; align-items:center; gap:.75rem">
+      <span class="usuario">{user.name || user.email}</span>
       {#if user.picture}
         <img src={user.picture} alt="avatar"
-             style="width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.4)" />
+             style="width:32px;height:32px;border-radius:50%;border:1px solid var(--borde)" />
       {/if}
-      <span class="usuario">{user.email}</span>
       <button class="btn-secondary btn-sm" onclick={handleLogout}>Salir</button>
     </div>
   </header>
 
   <!-- Alerta global flotante -->
   {#if mensaje}
-    <div class="alerta alerta-{mensaje.tipo}" style="margin:.5rem 1rem 0">
-      {mensaje.texto}
+    <div style="max-width: 1400px; margin: 1rem auto 0; padding: 0 1.5rem;">
+      <div class="alerta alerta-{mensaje.tipo}">
+        <span>{mensaje.tipo === 'ok' ? '✅' : '❌'}</span>
+        {mensaje.texto}
+      </div>
     </div>
   {/if}
 
@@ -148,4 +155,9 @@
       />
     </section>
   </div>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <p>by: <a href="mailto:paul.amen@unesum.edu.ec">paul.amen@unesum.edu.ec</a></p>
+  </footer>
 {/if}

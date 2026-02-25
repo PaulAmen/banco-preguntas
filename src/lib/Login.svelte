@@ -1,7 +1,8 @@
 <script>
-  // ============================================================
+  // = :::::::::::::::::::::::::::::::::::::::::::::::::::::::::
   // Login.svelte — Pantalla de inicio de sesión con Google GIS
-  // ============================================================
+  // = :::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  import logo from '../assets/logo.png';
 
   /** @type {{ onlogin: (u: {email:string, name:string, picture:string}) => void }} */
   let { onlogin } = $props();
@@ -73,20 +74,30 @@
 
 <div class="login-page">
   <div class="login-card">
-    <div class="escudo">🎓</div>
+    <div class="logo-container">
+      <img src={logo} alt="Logo Carrera Educación" class="logo" />
+    </div>
     <h2>Banco de Preguntas</h2>
-    <p>Universidad Estatal del Sur de Manabí</p>
+    <p>Carrera Educación &bull; UNESUM</p>
 
     {#if error}
-      <div class="alerta alerta-err" style="margin-bottom:1rem">{error}</div>
+      <div class="alerta alerta-err" style="margin-bottom:1rem">
+        <span>⚠️</span> {error}
+      </div>
     {/if}
 
     <!-- El SDK de GIS renderiza el botón aquí -->
-    <div bind:this={contenedor}></div>
+    <div style="display: flex; justify-content: center; margin-bottom: 1.5rem;">
+      <div bind:this={contenedor}></div>
+    </div>
 
-    <p style="margin-top:1rem; font-size:12px; color:#5f6368">
-      Solo cuentas <strong>@{DOMINIO}</strong>
+    <p style="font-size:13px; color:var(--texto-sub)">
+      Acceso exclusivo con cuenta institucional<br/>
+      <strong>@{DOMINIO}</strong>
     </p>
   </div>
-  <p class="login-aviso">UNESUM – Carrera de Educación Básica</p>
+  <div style="text-align:center; color:rgba(255,255,255,0.8); font-size:14px; display: flex; flex-direction: column; gap: 0.5rem;">
+    <p>UNESUM &bull; Carrera Educación &bull; Jipijapa, Manabí</p>
+    <p style="font-size: 13px; opacity: 0.9;">by: <a href="mailto:paul.amen@unesum.edu.ec" style="color:white; font-weight: 600;">paul.amen@unesum.edu.ec</a></p>
+  </div>
 </div>
