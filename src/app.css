@@ -98,6 +98,20 @@ body {
   border-bottom: 2px solid var(--azul-tenue);
 }
 
+.panel-titulo-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  padding-bottom: .75rem;
+  border-bottom: 2px solid var(--azul-tenue);
+}
+.panel-titulo-fila .panel-titulo {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
 /* ── Formulario ── */
 .form-group { margin-bottom: 1rem; }
 .form-group label {
@@ -164,6 +178,10 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .btn-sm { padding: .4rem .8rem; font-size: 13px; }
 .btn-editar { background: var(--azul-tenue); color: var(--azul); padding: .4rem .9rem; font-size: 13px; }
 .btn-editar:hover { background: var(--azul); color: #fff; }
+
+.btn-grupo-export { display: flex; gap: .4rem; }
+.btn-imprimir { background: #fff; color: var(--texto-sub); border: 1px solid var(--borde); padding: .35rem .85rem; font-size: 13px; gap: .35rem; }
+.btn-imprimir:hover { background: var(--azul-tenue); color: var(--azul); border-color: var(--azul); }
 
 .acciones { display: flex; gap: .75rem; margin-top: 1.5rem; flex-wrap: wrap; }
 

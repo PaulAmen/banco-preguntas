@@ -155,6 +155,8 @@
             {preguntas}
             {cargando}
             oneditar={handleEditar}
+            email={user.email}
+            nombre={user.name}
           />
         </section>
       </div>
