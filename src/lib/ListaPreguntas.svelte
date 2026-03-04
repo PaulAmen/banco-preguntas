@@ -37,41 +37,45 @@
       .replace(/"/g, '&quot;');
   }
 
-  // HTML compartido por PDF y Word — usa tablas (compatible con Word)
-  function generarHTML() {
-    const fecha = fechaHoy();
+  // Carga el membrete como base64 (se cachea tras la primera llamada)
+  let membreteB64Cache = null;
+  async function getMembreteBase64() {
+    if (membreteB64Cache) return membreteB64Cache;
+    const url = `${import.meta.env.BASE_URL}membrete.png`;
+    const resp = await fetch(url);
+    const blob = await resp.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => { membreteB64Cache = reader.result; resolve(reader.result); };
+      reader.readAsDataURL(blob);
+    });
+  }
 
-    const TIPO_COLOR = {
-      'tipo-om': 'background:#dbeafe;color:#1e40af',
-      'tipo-vf': 'background:#fee2e2;color:#991b1b',
-      'tipo-ul': 'background:#d1fae5;color:#065f46',
-      'tipo-cu': 'background:#fef3c7;color:#92400e',
-    };
+  // HTML compartido por PDF y Word — estilo APA 7ª edición
+  function generarHTML(membreteB64 = '', esWord = false) {
+    const fecha = fechaHoy();
+    const lh = esWord ? '1.5' : '2'; // Interlineado más compacto para Word
+    const border = esWord ? 'none' : '1.5pt solid #000'; // Sin bordes entre preguntas en Word
 
     const preguntasHTML = preguntas.map((p, i) => {
-      const tipoCss  = TIPO_CLASE[p.Tipo_Pregunta] || '';
-      const tipoEstilo = TIPO_COLOR[tipoCss] || '';
       let contenido = '';
 
       if (p.Tipo_Pregunta === 'Opción Múltiple' || p.Tipo_Pregunta === 'Casos de Uso') {
         const ops = [
-          ['A', p.Opcion_A_o_Concepto1],
-          ['B', p.Opcion_B_o_Definicion1],
-          ['C', p.Opcion_C_o_Concepto2],
-          ['D', p.Opcion_D_o_Definicion2],
+          ['a', p.Opcion_A_o_Concepto1],
+          ['b', p.Opcion_B_o_Definicion1],
+          ['c', p.Opcion_C_o_Concepto2],
+          ['d', p.Opcion_D_o_Definicion2],
         ].filter(([, v]) => v);
         contenido = `
-          <table width="100%" style="margin:.4em 0 .4em .5em;font-size:12px;border-collapse:collapse;">
-            <tr>
-              ${ops.slice(0, 2).map(([l, v]) => `<td width="50%" style="padding:.1em 0"><b>${l})</b> ${esc(v)}</td>`).join('')}
-            </tr>
-            ${ops.length > 2 ? `<tr>${ops.slice(2).map(([l, v]) => `<td style="padding:.1em 0"><b>${l})</b> ${esc(v)}</td>`).join('')}</tr>` : ''}
-          </table>
-          ${p.Respuesta_Correcta ? `<p style="font-size:12px;color:#059669;font-weight:bold;margin:.3em 0">&#10003; Respuesta correcta: ${esc(p.Respuesta_Correcta)}</p>` : ''}
+          <div style="margin:.4em 0 .4em 1.5em;line-height:${lh};">
+            ${ops.map(([l, v]) => `<p style="margin:0;font-size:12pt"><em>${l})</em> ${esc(v)}</p>`).join('')}
+          </div>
+          ${p.Respuesta_Correcta ? `<p style="font-size:12pt;margin:.2em 0"><em>Respuesta correcta:</em> <strong>${esc(p.Respuesta_Correcta)}</strong></p>` : ''}
         `;
       } else if (p.Tipo_Pregunta === 'Verdadero o Falso') {
         contenido = p.Respuesta_Correcta
-          ? `<p style="font-size:12px;color:#059669;font-weight:bold;margin:.3em 0">&#10003; Respuesta: ${esc(p.Respuesta_Correcta)}</p>`
+          ? `<p style="font-size:12pt;margin:.2em 0"><em>Respuesta:</em> <strong>${esc(p.Respuesta_Correcta)}</strong></p>`
           : '';
       } else if (p.Tipo_Pregunta === 'Unir con Líneas') {
         const pares = [
@@ -81,73 +85,93 @@
           [p.Concepto4, p.Definicion4],
         ].filter(([c, d]) => c || d);
         contenido = `
-          <table style="width:70%;border-collapse:collapse;margin:.45em 0;font-size:12px;">
-            <thead><tr>
-              <th style="border:1px solid #e2e8f0;padding:.3em .55em;background:#eff6ff;color:#1e40af;text-align:left">Concepto</th>
-              <th style="border:1px solid #e2e8f0;padding:.3em .55em;background:#eff6ff;color:#1e40af;text-align:left">Definición</th>
-            </tr></thead>
+          <table style="width:100%;border-collapse:collapse;margin:.5em 0;border-top:${border};border-bottom:${border};">
+            <thead>
+              <tr style="border-bottom:${esWord ? '1pt solid #000' : border};">
+                <th style="padding:.3em .6em;text-align:left;font-size:12pt;font-weight:bold;">Concepto</th>
+                <th style="padding:.3em .6em;text-align:left;font-size:12pt;font-weight:bold;">Definición</th>
+              </tr>
+            </thead>
             <tbody>
-              ${pares.map(([c, d]) => `<tr><td style="border:1px solid #e2e8f0;padding:.3em .55em">${esc(c) || '—'}</td><td style="border:1px solid #e2e8f0;padding:.3em .55em">${esc(d) || '—'}</td></tr>`).join('')}
+              ${pares.map(([c, d]) => `<tr><td style="padding:.3em .6em;font-size:12pt;">${esc(c) || '—'}</td><td style="padding:.3em .6em;font-size:12pt;">${esc(d) || '—'}</td></tr>`).join('')}
             </tbody>
           </table>
         `;
       }
 
       const justif = p.Justificacion
-        ? `<p style="font-size:11px;color:#64748b;margin:.35em 0;border-top:1px dotted #cbd5e1;padding-top:.3em"><b>Justificación:</b> ${esc(p.Justificacion)}</p>`
+        ? `<p style="font-size:12pt;margin:.4em 0 0 0;"><em>Nota.</em> ${esc(p.Justificacion)}</p>`
         : '';
 
+      const esUltima = i === preguntas.length - 1;
+      const mb = esUltima ? '0' : '-1pt';
+
       return `
-        <div style="border:1px solid #e2e8f0;border-radius:6px;padding:.7em .9em;margin-bottom:.8em;page-break-inside:avoid">
-          <table width="100%" style="margin-bottom:.35em;border-collapse:collapse"><tr>
-            <td style="font-weight:800;font-size:14px;color:#1e40af;width:1.8em;vertical-align:middle">${i + 1}.</td>
-            <td style="vertical-align:middle;padding-right:.5em">
-              <span style="display:inline-block;padding:.15em .5em;border-radius:9999px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;${tipoEstilo}">${esc(p.Tipo_Pregunta)}</span>
-            </td>
-            <td style="font-size:11px;color:#64748b;vertical-align:middle">${esc(p.Materia)} &middot; ${esc(p.Tema)}</td>
-          </tr></table>
-          <p style="font-size:13px;line-height:1.5;margin:.3em 0">${esc(p.Enunciado)}</p>
+        <div style="margin-bottom:0;page-break-inside:avoid;border-top:${border};border-bottom:${border};padding:.8em 0;margin-bottom:${mb};">
+          <p style="font-size:10pt;color:#444;margin:0 0 .2em 0;line-height:1.2;">
+            <strong>${esc(p.Tipo_Pregunta)}</strong> &mdash; ${esc(p.Materia)} &middot; ${esc(p.Tema)}
+          </p>
+          <p style="font-size:12pt;line-height:${lh};margin:.1em 0;"><strong>${i + 1}.</strong> ${esc(p.Enunciado)}</p>
           ${contenido}
           ${justif}
         </div>
       `;
     }).join('');
 
-    return `<!DOCTYPE html>
+    if (esWord) {
+      return `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Banco de Preguntas &mdash; ${esc(nombre || email)}</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; font-size: 13px; color: #1e293b; padding: 1.5cm 2cm; }
-    @page { size: A4; margin: 1.5cm 2cm; }
-    @media print { body { padding: 0; } }
+    body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.5; color: #000; }
+    table { border-collapse: collapse; width: 100%; }
   </style>
 </head>
 <body>
-  <table width="100%" style="border-bottom:2px solid #1e40af;padding-bottom:.9em;margin-bottom:1.4em;border-collapse:collapse">
+  <table width="100%" style="border-top:1.5pt solid #000;border-bottom:1.5pt solid #000;padding:.5em 0;margin-bottom:1.5em;">
     <tr>
-      <td style="vertical-align:top">
-        <p style="font-size:14px;font-weight:bold;color:#1e40af;margin-bottom:3px">UNIVERSIDAD ESTATAL DEL SUR DE MANABÍ &mdash; Carrera de Educación</p>
-        <p style="font-size:12px;color:#64748b">Banco de Preguntas</p>
-      </td>
-      <td align="right" style="font-size:12px;color:#475569;line-height:1.8;vertical-align:top">
-        <p><b>Docente:</b> ${esc(nombre || email)}</p>
-        <p><b>Correo:</b> ${esc(email)}</p>
-        <p><b>Total:</b> ${preguntas.length} preguntas</p>
-        <p><b>Fecha:</b> ${fecha}</p>
+      <td style="font-size:14pt;font-weight:bold;">Banco de Preguntas</td>
+      <td align="right" style="font-size:11pt;">
+        <strong>Docente:</strong> ${esc(nombre || email)}<br>
+        <strong>Correo:</strong> ${esc(email)}<br>
+        <strong>Total:</strong> ${preguntas.length} preguntas &nbsp; <strong>Fecha:</strong> ${fecha}
       </td>
     </tr>
   </table>
   ${preguntasHTML}
 </body>
-</html>`;
+</html>`.trim();
+    }
+
+    const imgMembrete = membreteB64
+      ? `<img src="${membreteB64}" alt="" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;">`
+      : '';
+
+    return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Banco de Preguntas &mdash; ${esc(nombre || email)}</title><style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    @page { size: A4; margin: 0; }
+    body {
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 12pt;
+      color: #000;
+      line-height: 2;
+      padding: 0 2.54cm 0 2.54cm; /* Eliminado padding inferior */
+    }
+    table { border-collapse: collapse; border-spacing: 0; }
+    thead { display: table-header-group; }
+    img { display: block; }
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .no-print { display: none; }
+    }
+  </style></head><body>${imgMembrete}<table width="100%"><thead><tr><td style="height: 5.5cm;"></td></tr></thead><tbody><tr><td><div style="margin-top: -0.3cm;"><table width="100%" style="border-top:1.5pt solid #000;border-bottom:1.5pt solid #000;padding:.5em 0;margin-bottom:1.5em;line-height:1.5;"><tr><td style="font-size:14pt;font-weight:bold;">Banco de Preguntas</td><td align="right" style="font-size:11pt;"><strong>Docente:</strong> ${esc(nombre || email)}<br><strong>Correo:</strong> ${esc(email)}<br><strong>Total:</strong> ${preguntas.length} preguntas &nbsp; <strong>Fecha:</strong> ${fecha}</td></tr></table>${preguntasHTML}</div></td></tr></tbody></table></body></html>`.trim();
   }
 
   // Abre el HTML como blob URL (evita "about:blank" en el pie del diálogo de impresión)
-  function verPDF() {
-    const blob = new Blob([generarHTML()], { type: 'text/html;charset=utf-8' });
+  async function verPDF() {
+    const b64 = await getMembreteBase64();
+    const blob = new Blob([generarHTML(b64, false)], { type: 'text/html;charset=utf-8' });
     const url  = URL.createObjectURL(blob);
     const ventana = window.open(url, '_blank');
     if (!ventana) {
@@ -162,8 +186,9 @@
   }
 
   // Descarga como .doc — Word lo abre y es completamente editable
-  function descargarWord() {
-    const blob = new Blob(['\uFEFF' + generarHTML()], { type: 'application/msword;charset=utf-8' });
+  async function descargarWord() {
+    const b64 = await getMembreteBase64();
+    const blob = new Blob(['\uFEFF' + generarHTML(b64, true)], { type: 'application/msword;charset=utf-8' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href     = url;
