@@ -2,7 +2,9 @@
 // api.js — Comunicación con el backend (Google Apps Script)
 // ============================================================
 
-const GAS_URL = import.meta.env.VITE_GAS_URL;
+const GAS_URL =
+  import.meta.env.VITE_GAS_URL ||
+  'https://script.google.com/macros/s/AKfycbxyCedxfmiWS-6_KqfboSGdq9tAKgccLcrlqVtIfWfOpajps0QfcI01fisxOHzSaBalIw/exec';
 
 /**
  * Trae todas las preguntas del docente desde Google Sheets.
