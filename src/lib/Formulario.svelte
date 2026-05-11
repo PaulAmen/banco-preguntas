@@ -41,6 +41,13 @@
   ];
 
   const TIPOS = ['Opción Múltiple', 'Verdadero o Falso', 'Unir con Líneas', 'Casos de Uso'];
+  const NIVELES_BLOOM = ['Comprensión', 'Análisis', 'Aplicación', 'Evaluación', 'Síntesis'];
+  const NOTAS_TIPO = {
+    'Opción Múltiple': 'Plantee una pregunta con cuatro alternativas. Solo una opción debe ser la respuesta correcta.',
+    'Verdadero o Falso': 'Escriba una afirmación clara que el estudiante pueda identificar como verdadera o falsa.',
+    'Unir con Líneas': 'Escriba cada pregunta o concepto junto a su respuesta correcta. El sistema se encargará de reordenar las respuestas aleatoriamente al momento de aplicar la evaluación.',
+    'Casos de Uso': 'Describa una situación práctica para que el estudiante responda con sus propias palabras. La respuesta esperada servirá como criterio para comparar con IA.'
+  };
 
   // ── Estado del formulario ───────────────────────────────────
   function vacío() {
@@ -51,6 +58,7 @@
       Materia: '',
       Tema: '',
       Tipo_Pregunta: '',
+      Nivel_Bloom: '',
       Enunciado: '',
       Opcion_A_o_Concepto1: '',
       Opcion_B_o_Definicion1: '',
@@ -89,6 +97,14 @@
     }
     payload.Fecha         = new Date().toISOString().split('T')[0];
     payload.Email_Docente = email;
+    if (
+      payload.Tipo_Pregunta === 'Verdadero o Falso' &&
+      payload.Respuesta_Correcta === 'Falso' &&
+      !String(payload.Justificacion || '').trim()
+    ) {
+      alert('Si la respuesta es Falso, debe justificar por qué la afirmación es incorrecta.');
+      return;
+    }
 
     const exito = await onguardar(payload);
 
@@ -145,9 +161,23 @@
     </select>
   </div>
 
+  <!-- Nivel Bloom -->
+  <div class="form-group">
+    <label for="nivel-bloom">Nivel Bloom</label>
+    <select id="nivel-bloom" bind:value={form.Nivel_Bloom} required disabled={cargando}>
+      <option value="">— Seleccione un nivel —</option>
+      {#each NIVELES_BLOOM as nivel}
+        <option value={nivel}>{nivel}</option>
+      {/each}
+    </select>
+  </div>
+
   <!-- ── Campos dinámicos según tipo ── -->
 
   {#if form.Tipo_Pregunta}
+    <div class="nota-tipo">
+      {NOTAS_TIPO[form.Tipo_Pregunta]}
+    </div>
 
     <!-- Enunciado (siempre presente) -->
     <div class="form-group">
@@ -162,8 +192,8 @@
                 required disabled={cargando}></textarea>
     </div>
 
-    <!-- ── Opción Múltiple / Casos de Uso ── -->
-    {#if form.Tipo_Pregunta === 'Opción Múltiple' || form.Tipo_Pregunta === 'Casos de Uso'}
+    <!-- ── Opción Múltiple ── -->
+    {#if form.Tipo_Pregunta === 'Opción Múltiple'}
       <div class="seccion-label">🎯 Opciones de respuesta</div>
       {#each [
         ['Opcion_A_o_Concepto1', 'A'],
@@ -188,6 +218,17 @@
       </div>
     {/if}
 
+    <!-- ── Casos de Uso ── -->
+    {#if form.Tipo_Pregunta === 'Casos de Uso'}
+      <div class="form-group">
+        <label for="resp-caso">Respuesta esperada / criterio de comparación</label>
+        <textarea id="resp-caso" bind:value={form.Respuesta_Correcta}
+                  rows="4"
+                  placeholder="Describe la respuesta esperada, criterios clave o elementos que debe contener la respuesta del estudiante…"
+                  required disabled={cargando}></textarea>
+      </div>
+    {/if}
+
     <!-- ── Verdadero o Falso ── -->
     {#if form.Tipo_Pregunta === 'Verdadero o Falso'}
       <div class="form-group">
@@ -202,7 +243,7 @@
 
     <!-- ── Unir con Líneas ── -->
     {#if form.Tipo_Pregunta === 'Unir con Líneas'}
-      <div class="seccion-label">🔗 Pares Concepto — Definición</div>
+      <div class="seccion-label">🔗 Pares pregunta — respuesta</div>
       {#each [
         ['Opcion_A_o_Concepto1',  'Opcion_B_o_Definicion1',  1],
         ['Opcion_C_o_Concepto2',  'Opcion_D_o_Definicion2',  2],
@@ -211,14 +252,14 @@
       ] as [cc, cd, n]}
         <div class="par-campos" style="margin-bottom:.5rem">
           <div class="form-group" style="margin:0">
-            <label for="c{n}">Concepto {n}</label>
+            <label for="c{n}">Pregunta / concepto {n}</label>
             <input id="c{n}" type="text" bind:value={form[cc]}
-                   placeholder="Concepto {n}…" required disabled={cargando} />
+                   placeholder="Pregunta o concepto {n}…" required disabled={cargando} />
           </div>
           <div class="form-group" style="margin:0">
-            <label for="d{n}">Definición {n}</label>
+            <label for="d{n}">Respuesta correcta {n}</label>
             <input id="d{n}" type="text" bind:value={form[cd]}
-                   placeholder="Definición {n}…" required disabled={cargando} />
+                   placeholder="Respuesta que corresponde…" required disabled={cargando} />
           </div>
         </div>
       {/each}
@@ -226,11 +267,18 @@
 
     <!-- Justificación (siempre presente) -->
     <div class="form-group">
-      <label for="justif">💡 Justificación</label>
+      <label for="justif">
+        💡 {form.Tipo_Pregunta === 'Verdadero o Falso' && form.Respuesta_Correcta === 'Falso'
+          ? 'Justificación obligatoria para respuesta falsa'
+          : 'Justificación'}
+      </label>
       <textarea id="justif" bind:value={form.Justificacion}
                 rows="3"
-                placeholder="Explica por qué la respuesta es correcta…"
-                required disabled={cargando}></textarea>
+                placeholder={form.Tipo_Pregunta === 'Verdadero o Falso' && form.Respuesta_Correcta === 'Falso'
+                  ? 'Explique por qué la afirmación es falsa y cuál sería la idea correcta…'
+                  : 'Explica por qué la respuesta es correcta…'}
+                required={form.Tipo_Pregunta === 'Verdadero o Falso' && form.Respuesta_Correcta === 'Falso'}
+                disabled={cargando}></textarea>
     </div>
 
   {/if}

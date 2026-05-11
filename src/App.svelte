@@ -68,6 +68,24 @@
     cargando = true;
     mensaje  = null;
     try {
+      const bloomMeta = {
+        'Comprensión': 3,
+        'Análisis': 4,
+        'Aplicación': 5,
+        'Evaluación': 3,
+        'Síntesis': 5,
+      };
+      const actual = preguntas.filter(p =>
+        p.ID_Pregunta !== pregunta.ID_Pregunta &&
+        p.Nivel_Bloom === pregunta.Nivel_Bloom
+      ).length;
+      if (!bloomMeta[pregunta.Nivel_Bloom]) {
+        throw new Error('Seleccione un nivel Bloom válido.');
+      }
+      if (actual + 1 > bloomMeta[pregunta.Nivel_Bloom]) {
+        throw new Error(`Ya alcanzó el máximo de ${bloomMeta[pregunta.Nivel_Bloom]} preguntas para ${pregunta.Nivel_Bloom}.`);
+      }
+
       await guardarPregunta(pregunta);
 
       // Actualizar array local sin re-fetch a GAS

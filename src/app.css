@@ -152,6 +152,17 @@ body {
   color: var(--azul);
   margin: 1.25rem 0 .5rem;
 }
+.nota-tipo {
+  margin: 0 0 1rem;
+  padding: .75rem .9rem;
+  border: 1px solid #bfdbfe;
+  border-left: 4px solid var(--azul);
+  border-radius: 8px;
+  background: var(--azul-tenue);
+  color: var(--azul-oscuro);
+  font-size: 13px;
+  line-height: 1.45;
+}
 
 /* ── Botones ── */
 button {
@@ -202,6 +213,27 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 /* ── Progreso ── */
 .progreso { font-size: 1.75rem; font-weight: 800; color: var(--azul); margin-bottom: 1rem; display: flex; align-items: baseline; gap: .5rem; }
 .progreso span { font-size: .9rem; font-weight: 500; color: var(--texto-sub); }
+.bloom-resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: .6rem;
+  margin-bottom: 1rem;
+}
+.bloom-item {
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: .7rem;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+}
+.bloom-item strong { display: block; font-size: 13px; color: var(--texto); }
+.bloom-item span { font-size: 12px; color: var(--texto-sub); }
+.bloom-item b { font-size: 15px; color: var(--azul); white-space: nowrap; }
+.bloom-ok { background: var(--bg-ok); border-color: #a7f3d0; }
+.bloom-ok b { color: var(--ok); }
 
 /* ── Tabla ── */
 .tabla-wrap { overflow-x: auto; margin-top: 0.5rem; }

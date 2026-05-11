@@ -7,6 +7,13 @@
   let { preguntas, cargando, oneditar, email = '', nombre = '' } = $props();
 
   const META = 20;
+  const BLOOM_META = [
+    { nivel: 'Comprensión', cantidad: 3, porcentaje: '15%' },
+    { nivel: 'Análisis', cantidad: 4, porcentaje: '20%' },
+    { nivel: 'Aplicación', cantidad: 5, porcentaje: '25%' },
+    { nivel: 'Evaluación', cantidad: 3, porcentaje: '15%' },
+    { nivel: 'Síntesis', cantidad: 5, porcentaje: '25%' },
+  ];
 
   const TIPO_CLASE = {
     'Opción Múltiple': 'tipo-om',
@@ -25,6 +32,14 @@
     return new Date().toLocaleDateString('es-EC', {
       year: 'numeric', month: 'long', day: 'numeric'
     });
+  }
+
+  function totalPorNivel(nivel) {
+    return preguntas.filter(p => p.Nivel_Bloom === nivel).length;
+  }
+
+  function distribucionCompleta() {
+    return BLOOM_META.every(item => totalPorNivel(item.nivel) >= item.cantidad);
   }
 
   // Escapa caracteres HTML para inserción segura
@@ -60,7 +75,7 @@
     const preguntasHTML = preguntas.map((p, i) => {
       let contenido = '';
 
-      if (p.Tipo_Pregunta === 'Opción Múltiple' || p.Tipo_Pregunta === 'Casos de Uso') {
+      if (p.Tipo_Pregunta === 'Opción Múltiple') {
         const ops = [
           ['a', p.Opcion_A_o_Concepto1],
           ['b', p.Opcion_B_o_Definicion1],
@@ -73,6 +88,10 @@
           </div>
           ${p.Respuesta_Correcta ? `<p style="font-size:12pt;margin:.2em 0"><em>Respuesta correcta:</em> <strong>${esc(p.Respuesta_Correcta)}</strong></p>` : ''}
         `;
+      } else if (p.Tipo_Pregunta === 'Casos de Uso') {
+        contenido = p.Respuesta_Correcta
+          ? `<p style="font-size:12pt;margin:.2em 0"><em>Respuesta esperada:</em> ${esc(p.Respuesta_Correcta)}</p>`
+          : '';
       } else if (p.Tipo_Pregunta === 'Verdadero o Falso') {
         contenido = p.Respuesta_Correcta
           ? `<p style="font-size:12pt;margin:.2em 0"><em>Respuesta:</em> <strong>${esc(p.Respuesta_Correcta)}</strong></p>`
@@ -109,7 +128,7 @@
       return `
         <div style="margin-bottom:0;page-break-inside:avoid;border-top:${border};border-bottom:${border};padding:.8em 0;margin-bottom:${mb};">
           <p style="font-size:10pt;color:#444;margin:0 0 .2em 0;line-height:1.2;">
-            <strong>${esc(p.Tipo_Pregunta)}</strong> &mdash; ${esc(p.Materia)} &middot; ${esc(p.Tema)}
+            <strong>${esc(p.Tipo_Pregunta)}</strong> &mdash; ${esc(p.Nivel_Bloom || 'Sin nivel Bloom')} &mdash; ${esc(p.Materia)} &middot; ${esc(p.Tema)}
           </p>
           <p style="font-size:12pt;line-height:${lh};margin:.1em 0;"><strong>${i + 1}.</strong> ${esc(p.Enunciado)}</p>
           ${contenido}
@@ -227,6 +246,20 @@
   {preguntas.length} <span>/ {META} preguntas registradas</span>
 </div>
 
+<div class="bloom-resumen" aria-label="Distribución por nivel Bloom">
+  {#each BLOOM_META as item}
+    {@const actual = totalPorNivel(item.nivel)}
+    {@const completo = actual >= item.cantidad}
+    <div class="bloom-item {completo ? 'bloom-ok' : ''}">
+      <div>
+        <strong>{item.nivel}</strong>
+        <span>{item.porcentaje}</span>
+      </div>
+      <b>{actual}/{item.cantidad}</b>
+    </div>
+  {/each}
+</div>
+
 <!-- Barra de progreso visual -->
 <div style="height:12px; background:var(--azul-tenue); border-radius:999px; margin-bottom:1.5rem; overflow:hidden; border: 1px solid var(--borde)">
   <div style="
@@ -237,9 +270,9 @@
   "></div>
 </div>
 
-{#if preguntas.length >= META}
+{#if preguntas.length >= META && distribucionCompleta()}
   <div class="alerta alerta-ok" style="margin-bottom:1.5rem">
-    <span>✨</span> ¡Banco completo! Has registrado las {META} preguntas requeridas.
+    <span>✨</span> ¡Banco completo! Has registrado las {META} preguntas con la distribución Bloom requerida.
   </div>
 {/if}
 
@@ -259,6 +292,7 @@
           <th>Materia</th>
           <th>Tema</th>
           <th>Tipo</th>
+          <th>Bloom</th>
           <th>Enunciado</th>
           <th></th>
         </tr>
@@ -273,6 +307,7 @@
             <td>
               <span class="tipo-badge {TIPO_CLASE[p.Tipo_Pregunta] || ''}">{p.Tipo_Pregunta}</span>
             </td>
+            <td>{p.Nivel_Bloom || '—'}</td>
             <td>{cortar(p.Enunciado, 60)}</td>
             <td>
               <button class="btn-editar" onclick={() => oneditar(p)}>Editar</button>
