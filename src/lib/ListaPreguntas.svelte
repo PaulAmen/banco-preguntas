@@ -19,7 +19,7 @@
     'Opción Múltiple': 'tipo-om',
     'Verdadero o Falso': 'tipo-vf',
     'Unir con Líneas': 'tipo-ul',
-    'Casos de Uso': 'tipo-cu',
+    'Estudio de Caso': 'tipo-cu',
   };
 
   // Trunca texto largo para mostrar en tabla
@@ -88,7 +88,7 @@
           </div>
           ${p.Respuesta_Correcta ? `<p style="font-size:12pt;margin:.2em 0"><em>Respuesta correcta:</em> <strong>${esc(p.Respuesta_Correcta)}</strong></p>` : ''}
         `;
-      } else if (p.Tipo_Pregunta === 'Casos de Uso') {
+      } else if (p.Tipo_Pregunta === 'Estudio de Caso') {
         contenido = p.Respuesta_Correcta
           ? `<p style="font-size:12pt;margin:.2em 0"><em>Respuesta esperada:</em> ${esc(p.Respuesta_Correcta)}</p>`
           : '';

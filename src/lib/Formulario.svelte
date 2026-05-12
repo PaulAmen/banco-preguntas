@@ -40,13 +40,13 @@
     "Taller de Escritura del Plan de Investigación",
   ];
 
-  const TIPOS = ['Opción Múltiple', 'Verdadero o Falso', 'Unir con Líneas', 'Casos de Uso'];
+  const TIPOS = ['Opción Múltiple', 'Verdadero o Falso', 'Unir con Líneas', 'Estudio de Caso'];
   const NIVELES_BLOOM = ['Comprensión', 'Análisis', 'Aplicación', 'Evaluación', 'Síntesis'];
   const NOTAS_TIPO = {
     'Opción Múltiple': 'Plantee una pregunta con cuatro alternativas. Solo una opción debe ser la respuesta correcta.',
     'Verdadero o Falso': 'Escriba una afirmación clara que el estudiante pueda identificar como verdadera o falsa.',
     'Unir con Líneas': 'Escriba cada pregunta o concepto junto a su respuesta correcta. El sistema se encargará de reordenar las respuestas aleatoriamente al momento de aplicar la evaluación.',
-    'Casos de Uso': 'Describa una situación práctica para que el estudiante responda con sus propias palabras. La respuesta esperada servirá como criterio para comparar con IA.'
+    'Estudio de Caso': 'Describa una situación práctica para que el estudiante responda con sus propias palabras. La respuesta esperada servirá como criterio para comparar con IA.'
   };
 
   // ── Estado del formulario ───────────────────────────────────
@@ -184,11 +184,11 @@
     <!-- Enunciado (siempre presente) -->
     <div class="form-group">
       <label for="enunciado">
-        {#if form.Tipo_Pregunta === 'Casos de Uso'}Caso / Situación{:else}Enunciado de la pregunta{/if}
+        {#if form.Tipo_Pregunta === 'Estudio de Caso'}Caso / Situación{:else}Enunciado de la pregunta{/if}
       </label>
       <textarea id="enunciado" bind:value={form.Enunciado}
-                rows={form.Tipo_Pregunta === 'Casos de Uso' ? 5 : 3}
-                placeholder={form.Tipo_Pregunta === 'Casos de Uso'
+                rows={form.Tipo_Pregunta === 'Estudio de Caso' ? 5 : 3}
+                placeholder={form.Tipo_Pregunta === 'Estudio de Caso'
                   ? 'Describe la situación o caso práctico…'
                   : 'Escribe la pregunta completa…'}
                 required disabled={cargando}></textarea>
@@ -220,8 +220,8 @@
       </div>
     {/if}
 
-    <!-- ── Casos de Uso ── -->
-    {#if form.Tipo_Pregunta === 'Casos de Uso'}
+    <!-- ── Estudio de Caso ── -->
+    {#if form.Tipo_Pregunta === 'Estudio de Caso'}
       <div class="form-group">
         <label for="resp-caso">Respuesta esperada / criterio de comparación</label>
         <textarea id="resp-caso" bind:value={form.Respuesta_Correcta}
