@@ -97,13 +97,15 @@
     }
     payload.Fecha         = new Date().toISOString().split('T')[0];
     payload.Email_Docente = email;
-    if (
+    const esVF_Falso =
       payload.Tipo_Pregunta === 'Verdadero o Falso' &&
-      payload.Respuesta_Correcta === 'Falso' &&
-      !String(payload.Justificacion || '').trim()
-    ) {
+      payload.Respuesta_Correcta === 'Falso';
+    if (esVF_Falso && !String(payload.Justificacion || '').trim()) {
       alert('Si la respuesta es Falso, debe justificar por qué la afirmación es incorrecta.');
       return;
+    }
+    if (!esVF_Falso) {
+      payload.Justificacion = '';
     }
 
     const exito = await onguardar(payload);
@@ -265,21 +267,17 @@
       {/each}
     {/if}
 
-    <!-- Justificación (siempre presente) -->
-    <div class="form-group">
-      <label for="justif">
-        💡 {form.Tipo_Pregunta === 'Verdadero o Falso' && form.Respuesta_Correcta === 'Falso'
-          ? 'Justificación obligatoria para respuesta falsa'
-          : 'Justificación'}
-      </label>
-      <textarea id="justif" bind:value={form.Justificacion}
-                rows="3"
-                placeholder={form.Tipo_Pregunta === 'Verdadero o Falso' && form.Respuesta_Correcta === 'Falso'
-                  ? 'Explique por qué la afirmación es falsa y cuál sería la idea correcta…'
-                  : 'Explica por qué la respuesta es correcta…'}
-                required={form.Tipo_Pregunta === 'Verdadero o Falso' && form.Respuesta_Correcta === 'Falso'}
-                disabled={cargando}></textarea>
-    </div>
+    <!-- Justificación (solo para V/F con respuesta "Falso") -->
+    {#if form.Tipo_Pregunta === 'Verdadero o Falso' && form.Respuesta_Correcta === 'Falso'}
+      <div class="form-group">
+        <label for="justif">💡 Justificación obligatoria — se usará como criterio para comparar con la IA</label>
+        <textarea id="justif" bind:value={form.Justificacion}
+                  rows="3"
+                  placeholder="Explique por qué la afirmación es falsa y cuál sería la idea correcta. Este texto se usará como referencia para que la IA evalúe la respuesta del estudiante, así que sea claro y completo."
+                  required
+                  disabled={cargando}></textarea>
+      </div>
+    {/if}
 
   {/if}
 
