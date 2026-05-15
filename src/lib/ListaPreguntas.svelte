@@ -137,6 +137,13 @@
       `;
     }).join('');
 
+    const firmaHTML = `
+      <div style="page-break-inside:avoid;margin:2.8cm auto 0 auto;width:9cm;text-align:center;line-height:1.4;">
+        <div style="border-top:1.2pt solid #000;height:0;margin-bottom:.35cm;"></div>
+        <p style="font-size:12pt;margin:0;"><strong>Elaborado por:</strong> ${esc(nombre || email)}</p>
+      </div>
+    `;
+
     if (esWord) {
       return `<!DOCTYPE html>
 <html lang="es">
@@ -184,7 +191,7 @@
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .no-print { display: none; }
     }
-  </style></head><body>${imgMembrete}<table width="100%"><thead><tr><td style="height: 5.5cm;"></td></tr></thead><tbody><tr><td><div style="margin-top: -0.3cm;"><table width="100%" style="border-top:1.5pt solid #000;border-bottom:1.5pt solid #000;padding:.5em 0;margin-bottom:1.5em;line-height:1.5;"><tr><td style="font-size:14pt;font-weight:bold;">Banco de Preguntas</td><td align="right" style="font-size:11pt;"><strong>Docente:</strong> ${esc(nombre || email)}<br><strong>Correo:</strong> ${esc(email)}<br><strong>Total:</strong> ${preguntas.length} preguntas &nbsp; <strong>Fecha:</strong> ${fecha}</td></tr></table>${preguntasHTML}</div></td></tr></tbody></table></body></html>`.trim();
+  </style></head><body>${imgMembrete}<table width="100%"><thead><tr><td style="height: 5.5cm;"></td></tr></thead><tbody><tr><td><div style="margin-top: -0.3cm;"><table width="100%" style="border-top:1.5pt solid #000;border-bottom:1.5pt solid #000;padding:.5em 0;margin-bottom:1.5em;line-height:1.5;"><tr><td style="font-size:14pt;font-weight:bold;">Banco de Preguntas</td><td align="right" style="font-size:11pt;"><strong>Docente:</strong> ${esc(nombre || email)}<br><strong>Correo:</strong> ${esc(email)}<br><strong>Total:</strong> ${preguntas.length} preguntas &nbsp; <strong>Fecha:</strong> ${fecha}</td></tr></table>${preguntasHTML}${firmaHTML}</div></td></tr></tbody></table></body></html>`.trim();
   }
 
   // Abre el HTML como blob URL (evita "about:blank" en el pie del diálogo de impresión)
