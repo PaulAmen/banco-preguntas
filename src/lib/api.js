@@ -7,7 +7,7 @@ const GAS_URL =
   'https://script.google.com/macros/s/AKfycbxyCedxfmiWS-6_KqfboSGdq9tAKgccLcrlqVtIfWfOpajps0QfcI01fisxOHzSaBalIw/exec';
 
 /**
- * Trae todas las preguntas del docente desde Google Sheets.
+ * Trae las preguntas propias y las materias habilitadas para visualización compartida.
  * Usa fetch normal (GET simple → CORS permitido por GAS).
  */
 export async function fetchPreguntas(email) {
@@ -15,7 +15,10 @@ export async function fetchPreguntas(email) {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = await res.json();
   if (!data.success) throw new Error(data.error || 'Error al obtener preguntas');
-  return data.data;
+  return {
+    preguntas: data.data || [],
+    sharedSubjects: data.sharedSubjects || [],
+  };
 }
 
 /**

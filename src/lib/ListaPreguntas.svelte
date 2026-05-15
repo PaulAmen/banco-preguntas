@@ -3,8 +3,8 @@
   // ListaPreguntas.svelte — Columna derecha: listado y progreso
   // ============================================================
 
-  /** @type {{ preguntas: any[], cargando: boolean, oneditar: (p:any)=>void, email?: string, nombre?: string }} */
-  let { preguntas, cargando, oneditar, email = '', nombre = '' } = $props();
+  /** @type {{ preguntas: any[], cargando: boolean, oneditar: (p:any)=>void, email?: string, nombre?: string, sharedSubjects?: string[] }} */
+  let { preguntas, cargando, oneditar, email = '', nombre = '', sharedSubjects = [] } = $props();
 
   const META = 20;
   const BLOOM_META = [
@@ -22,6 +22,26 @@
     'Estudio de Caso': 'tipo-cu',
   };
 
+  let materiaCompartidaActiva = $state('');
+  const emailNormalizado = $derived(String(email || '').trim().toLowerCase());
+  const preguntasPropias = $derived(
+    preguntas.filter(p => String(p.Email_Docente || '').trim().toLowerCase() === emailNormalizado)
+  );
+  const materiasCompartidas = $derived(
+    sharedSubjects.filter(materia => preguntas.some(p => p.Materia === materia && p.Edicion_Compartida))
+  );
+  const preguntasVisibles = $derived(
+    materiaCompartidaActiva
+      ? preguntas.filter(p => p.Materia === materiaCompartidaActiva)
+      : preguntasPropias
+  );
+
+  $effect(() => {
+    if (materiaCompartidaActiva && !materiasCompartidas.includes(materiaCompartidaActiva)) {
+      materiaCompartidaActiva = '';
+    }
+  });
+
   // Trunca texto largo para mostrar en tabla
   function cortar(txt, n = 70) {
     if (!txt) return '—';
@@ -35,7 +55,7 @@
   }
 
   function totalPorNivel(nivel) {
-    return preguntas.filter(p => p.Nivel_Bloom === nivel).length;
+    return preguntasPropias.filter(p => p.Nivel_Bloom === nivel).length;
   }
 
   function distribucionCompleta() {
@@ -71,8 +91,9 @@
     const fecha = fechaHoy();
     const lh = esWord ? '1.5' : '2'; // Interlineado más compacto para Word
     const border = esWord ? 'none' : '1.5pt solid #000'; // Sin bordes entre preguntas en Word
+    const preguntasExportables = preguntasVisibles;
 
-    const preguntasHTML = preguntas.map((p, i) => {
+    const preguntasHTML = preguntasExportables.map((p, i) => {
       let contenido = '';
 
       if (p.Tipo_Pregunta === 'Opción Múltiple') {
@@ -122,7 +143,7 @@
         ? `<p style="font-size:12pt;margin:.4em 0 0 0;"><em>Nota.</em> ${esc(p.Justificacion)}</p>`
         : '';
 
-      const esUltima = i === preguntas.length - 1;
+      const esUltima = i === preguntasExportables.length - 1;
       const mb = esUltima ? '0' : '-1pt';
 
       return `
@@ -161,7 +182,7 @@
       <td align="right" style="font-size:11pt;">
         <strong>Docente:</strong> ${esc(nombre || email)}<br>
         <strong>Correo:</strong> ${esc(email)}<br>
-        <strong>Total:</strong> ${preguntas.length} preguntas &nbsp; <strong>Fecha:</strong> ${fecha}
+        <strong>Total:</strong> ${preguntasExportables.length} preguntas &nbsp; <strong>Fecha:</strong> ${fecha}
       </td>
     </tr>
   </table>
@@ -191,7 +212,7 @@
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .no-print { display: none; }
     }
-  </style></head><body>${imgMembrete}<table width="100%"><thead><tr><td style="height: 5.5cm;"></td></tr></thead><tbody><tr><td><div style="margin-top: -0.3cm;"><table width="100%" style="border-top:1.5pt solid #000;border-bottom:1.5pt solid #000;padding:.5em 0;margin-bottom:1.5em;line-height:1.5;"><tr><td style="font-size:14pt;font-weight:bold;">Banco de Preguntas</td><td align="right" style="font-size:11pt;"><strong>Docente:</strong> ${esc(nombre || email)}<br><strong>Correo:</strong> ${esc(email)}<br><strong>Total:</strong> ${preguntas.length} preguntas &nbsp; <strong>Fecha:</strong> ${fecha}</td></tr></table>${preguntasHTML}${firmaHTML}</div></td></tr></tbody></table></body></html>`.trim();
+  </style></head><body>${imgMembrete}<table width="100%"><thead><tr><td style="height: 5.5cm;"></td></tr></thead><tbody><tr><td><div style="margin-top: -0.3cm;"><table width="100%" style="border-top:1.5pt solid #000;border-bottom:1.5pt solid #000;padding:.5em 0;margin-bottom:1.5em;line-height:1.5;"><tr><td style="font-size:14pt;font-weight:bold;">Banco de Preguntas</td><td align="right" style="font-size:11pt;"><strong>Docente:</strong> ${esc(nombre || email)}<br><strong>Correo:</strong> ${esc(email)}<br><strong>Total:</strong> ${preguntasExportables.length} preguntas &nbsp; <strong>Fecha:</strong> ${fecha}</td></tr></table>${preguntasHTML}${firmaHTML}</div></td></tr></tbody></table></body></html>`.trim();
   }
 
   // Abre el HTML como blob URL (evita "about:blank" en el pie del diálogo de impresión)
@@ -228,7 +249,7 @@
 
 <div class="panel-titulo-fila">
   <div class="panel-titulo">Mis Preguntas</div>
-  {#if preguntas.length > 0}
+  {#if preguntasVisibles.length > 0}
     <div class="btn-grupo-export">
       <button class="btn-imprimir btn-sm" onclick={verPDF} title="Ver e imprimir / guardar como PDF">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
@@ -250,8 +271,36 @@
 
 <!-- Contador de progreso -->
 <div class="progreso">
-  {preguntas.length} <span>/ {META} preguntas registradas</span>
+  {preguntasPropias.length} <span>/ {META} preguntas propias registradas</span>
 </div>
+
+{#if materiasCompartidas.length > 0}
+  <div class="edicion-compartida">
+    <div>
+      <strong>Visualización compartida habilitada</strong>
+      <span>Puede visualizar e imprimir todas las preguntas de la asignatura seleccionada.</span>
+    </div>
+    <div class="materias-compartidas">
+      <button
+        class:activo={materiaCompartidaActiva === ''}
+        class="btn-filtro-materia"
+        onclick={() => materiaCompartidaActiva = ''}
+      >
+        Mis preguntas
+      </button>
+      {#each materiasCompartidas as materia}
+        <button
+          class:activo={materiaCompartidaActiva === materia}
+          class="btn-filtro-materia"
+          onclick={() => materiaCompartidaActiva = materia}
+          title={materia}
+        >
+          {cortar(materia, 32)}
+        </button>
+      {/each}
+    </div>
+  </div>
+{/if}
 
 <div class="bloom-resumen" aria-label="Distribución por nivel Bloom">
   {#each BLOOM_META as item}
@@ -271,13 +320,13 @@
 <div style="height:12px; background:var(--azul-tenue); border-radius:999px; margin-bottom:1.5rem; overflow:hidden; border: 1px solid var(--borde)">
   <div style="
     height:100%;
-    width:{Math.min(preguntas.length / META * 100, 100)}%;
-    background: {preguntas.length >= META ? 'var(--ok)' : 'var(--azul)'};
+    width:{Math.min(preguntasPropias.length / META * 100, 100)}%;
+    background: {preguntasPropias.length >= META ? 'var(--ok)' : 'var(--azul)'};
     transition: width .6s cubic-bezier(0.34, 1.56, 0.64, 1);
   "></div>
 </div>
 
-{#if preguntas.length >= META && distribucionCompleta()}
+{#if preguntasPropias.length >= META && distribucionCompleta()}
   <div class="alerta alerta-ok" style="margin-bottom:1.5rem">
     <span>✨</span> ¡Banco completo! Has registrado las {META} preguntas con la distribución Bloom requerida.
   </div>
@@ -285,7 +334,7 @@
 
 {#if cargando}
   <div class="vacio"><span class="spinner"></span> Cargando preguntas…</div>
-{:else if preguntas.length === 0}
+{:else if preguntasVisibles.length === 0}
   <div class="vacio">
     Aún no has registrado preguntas.<br>
     Usa el formulario de la izquierda para comenzar.
@@ -301,11 +350,14 @@
           <th>Tipo</th>
           <th>Bloom</th>
           <th>Enunciado</th>
+          {#if materiaCompartidaActiva}
+            <th>Docente</th>
+          {/if}
           <th></th>
         </tr>
       </thead>
       <tbody>
-        {#each preguntas as p, i}
+        {#each preguntasVisibles as p, i}
           <tr>
             <td>{i + 1}</td>
             <td style="max-width:120px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis"
@@ -316,8 +368,19 @@
             </td>
             <td>{p.Nivel_Bloom || '—'}</td>
             <td>{cortar(p.Enunciado, 60)}</td>
+            {#if materiaCompartidaActiva}
+              <td>
+                <span class="docente-badge" class:compartida={p.Edicion_Compartida}>
+                  {p.Edicion_Compartida ? 'Otro docente' : 'Propia'}
+                </span>
+              </td>
+            {/if}
             <td>
-              <button class="btn-editar" onclick={() => oneditar(p)}>Editar</button>
+              {#if p.Puede_Editar !== false}
+                <button class="btn-editar" onclick={() => oneditar(p)}>Editar</button>
+              {:else}
+                <span class="solo-lectura">Solo lectura</span>
+              {/if}
             </td>
           </tr>
         {/each}

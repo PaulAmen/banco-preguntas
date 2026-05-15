@@ -11,6 +11,7 @@
   // ── Estado global ───────────────────────────────────────────
   let user              = $state(null);  // { email, name, picture }
   let preguntas         = $state([]);
+  let sharedSubjects    = $state([]);
   let preguntaEnEdicion = $state(null);
   let cargando          = $state(false);
   let mensaje           = $state(null);  // { tipo:'ok'|'err', texto:'' }
@@ -25,6 +26,7 @@
     google.accounts.id.disableAutoSelect();
     user              = null;
     preguntas         = [];
+    sharedSubjects    = [];
     preguntaEnEdicion = null;
     mensaje           = null;
   }
@@ -33,7 +35,11 @@
   const cacheKey = () => `bp_${user.email}`;
 
   function leerCache() {
-    try { return JSON.parse(sessionStorage.getItem(cacheKey()) || 'null'); }
+    try {
+      const cached = JSON.parse(sessionStorage.getItem(cacheKey()) || 'null');
+      if (Array.isArray(cached)) return { preguntas: cached, sharedSubjects: [] };
+      return cached;
+    }
     catch { return null; }
   }
 
@@ -47,7 +53,8 @@
     // 1. Mostrar caché inmediatamente si existe
     const cached = leerCache();
     if (cached) {
-      preguntas = cached;
+      preguntas = cached.preguntas || [];
+      sharedSubjects = cached.sharedSubjects || [];
     } else {
       cargando = true;  // spinner solo cuando no hay caché
     }
@@ -55,7 +62,8 @@
     // 2. Fetch en segundo plano
     try {
       const data = await fetchPreguntas(user.email);
-      preguntas = data;
+      preguntas = data.preguntas;
+      sharedSubjects = data.sharedSubjects;
       escribirCache(data);
     } catch (e) {
       if (!cached) mostrarMensaje('err', 'No se pudieron cargar las preguntas: ' + e.message);
@@ -77,7 +85,8 @@
       };
       const actual = preguntas.filter(p =>
         p.ID_Pregunta !== pregunta.ID_Pregunta &&
-        p.Nivel_Bloom === pregunta.Nivel_Bloom
+        p.Nivel_Bloom === pregunta.Nivel_Bloom &&
+        String(p.Email_Docente || '').toLowerCase() === String(pregunta.Email_Docente || '').toLowerCase()
       ).length;
       if (!bloomMeta[pregunta.Nivel_Bloom]) {
         throw new Error('Seleccione un nivel Bloom válido.');
@@ -86,7 +95,10 @@
         throw new Error(`Ya alcanzó el máximo de ${bloomMeta[pregunta.Nivel_Bloom]} preguntas para ${pregunta.Nivel_Bloom}.`);
       }
 
-      await guardarPregunta(pregunta);
+      await guardarPregunta({
+        ...pregunta,
+        Solicitante_Email: user.email,
+      });
 
       // Actualizar array local sin re-fetch a GAS
       const idx = preguntas.findIndex(p => p.ID_Pregunta === pregunta.ID_Pregunta);
@@ -97,7 +109,7 @@
         preguntas.push(pregunta);
         mostrarMensaje('ok', 'Pregunta guardada.');
       }
-      escribirCache(preguntas);
+      escribirCache({ preguntas, sharedSubjects });
 
       preguntaEnEdicion = null;
       return true;
@@ -175,6 +187,7 @@
             oneditar={handleEditar}
             email={user.email}
             nombre={user.name}
+            {sharedSubjects}
           />
         </section>
       </div>

@@ -75,6 +75,10 @@
 
   let form = $state(vacío());
   let modoEdicion = $derived(!!preguntaEnEdicion);
+  let esEdicionCompartida = $derived(
+    modoEdicion &&
+    String(form.Email_Docente || '').trim().toLowerCase() !== String(email || '').trim().toLowerCase()
+  );
 
   // Mutar el proxy existente (nunca reemplazarlo) para que bind:value
   // siempre apunte al mismo objeto y el tracking del template no se rompa.
@@ -95,8 +99,8 @@
     if (!payload.ID_Pregunta) {
       payload.ID_Pregunta = crypto.randomUUID();
     }
-    payload.Fecha         = new Date().toISOString().split('T')[0];
-    payload.Email_Docente = email;
+    payload.Fecha = new Date().toISOString().split('T')[0];
+    payload.Email_Docente = preguntaEnEdicion?.Email_Docente || email;
     const esVF_Falso =
       payload.Tipo_Pregunta === 'Verdadero o Falso' &&
       payload.Respuesta_Correcta === 'Falso';
@@ -136,7 +140,7 @@
   <!-- Materia -->
   <div class="form-group">
     <label for="materia">Materia</label>
-    <select id="materia" bind:value={form.Materia} required disabled={cargando}>
+    <select id="materia" bind:value={form.Materia} required disabled={cargando || esEdicionCompartida}>
       <option value="">— Seleccione una materia —</option>
       {#each MATERIAS as m}
         <option value={m}>{m}</option>

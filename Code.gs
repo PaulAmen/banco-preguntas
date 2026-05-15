@@ -6,6 +6,7 @@
 
 const SHEET_NAME    = 'BancoPreguntas';
 const ALLOWED_DOMAIN = '@unesum.edu.ec';
+const SHARED_EDIT_THRESHOLD = 7;
 const HEADERS = [
   'ID_Pregunta', 'Fecha', 'Email_Docente', 'Materia', 'Tema', 'Tipo_Pregunta',
   'Enunciado', 'Opcion_A_o_Concepto1', 'Opcion_B_o_Definicion1',
@@ -48,7 +49,7 @@ function ensureHeaders(sheet) {
 
 // ------------------------------------------------------------------
 // GET  ?email=docente@unesum.edu.ec
-// Retorna todas las filas que corresponden al docente.
+// Retorna las filas del docente y las de materias habilitadas para visualización compartida.
 // ------------------------------------------------------------------
 function doGet(e) {
   try {
@@ -69,15 +70,28 @@ function doGet(e) {
       .getRange(2, 1, lastRow - 1, HEADERS.length)
       .getValues();
 
+    const sharedSubjects = getSharedEditableSubjects(values, email);
     const preguntas = values
-      .filter(row => normalizeEmail(row[2]) === email && row[0] !== '')
+      .filter(row => {
+        const rowEmail = normalizeEmail(row[2]);
+        const rowSubject = normalizeSubject(row[3]);
+        return row[0] !== '' && (rowEmail === email || sharedSubjects[rowSubject]);
+      })
       .map(row => {
         const obj = {};
         HEADERS.forEach((h, i) => { obj[h] = row[i]; });
+        const rowEmail = normalizeEmail(row[2]);
+        const rowSubject = normalizeSubject(row[3]);
+        obj.Puede_Editar = rowEmail === email;
+        obj.Edicion_Compartida = rowEmail !== email && !!sharedSubjects[rowSubject];
         return obj;
       });
 
-    return buildResponse({ success: true, data: preguntas });
+    return buildResponse({
+      success: true,
+      data: preguntas,
+      sharedSubjects: Object.keys(sharedSubjects)
+    });
 
   } catch (err) {
     return buildResponse({ success: false, error: err.toString() });
@@ -94,9 +108,9 @@ function doGet(e) {
 function doPost(e) {
   try {
     const payload = JSON.parse(e.postData.contents);
-    const email   = normalizeEmail(payload.Email_Docente);
+    const requestEmail = normalizeEmail(payload.Solicitante_Email || payload.Email_Docente);
 
-    if (!email.endsWith(ALLOWED_DOMAIN)) {
+    if (!requestEmail.endsWith(ALLOWED_DOMAIN)) {
       return buildResponse({ success: false, error: 'Dominio no autorizado.' });
     }
 
@@ -125,23 +139,30 @@ function doPost(e) {
     const lastRow = sheet.getLastRow();
     let targetRow = -1;
     let rows = [];
+    let ownerEmail = requestEmail;
 
     if (lastRow > 1) {
       rows = sheet.getRange(2, 1, lastRow - 1, HEADERS.length).getValues();
       const idx = rows.findIndex(row => String(row[0]).trim() === id);
       if (idx !== -1) {
         const existingEmail = normalizeEmail(rows[idx][2]);
-        if (existingEmail !== email) {
+        const isSharedEdit = existingEmail !== requestEmail;
+        if (isSharedEdit) {
           return buildResponse({
             success: false,
             error: 'No puede modificar una pregunta registrada por otro docente.'
           });
         }
+        ownerEmail = existingEmail;
         targetRow = idx + 2; // +2: fila de cabecera + índice 0
+      } else {
+        ownerEmail = requestEmail;
       }
     }
 
-    const errorDistribucion = validateBloomDistribution(rows, email, id, nivelBloom);
+    payload.Email_Docente = ownerEmail;
+
+    const errorDistribucion = validateBloomDistribution(rows, ownerEmail, id, nivelBloom);
     if (errorDistribucion) {
       return buildResponse({ success: false, error: errorDistribucion });
     }
@@ -180,8 +201,32 @@ function validateBloomDistribution(rows, email, id, nivelBloom) {
   return '';
 }
 
+function getSharedEditableSubjects(rows, email) {
+  const counts = {};
+  rows.forEach(row => {
+    const rowId = String(row[0] || '').trim();
+    const rowEmail = normalizeEmail(row[2]);
+    const rowSubject = normalizeSubject(row[3]);
+    if (rowId && rowEmail === email && rowSubject) {
+      counts[rowSubject] = (counts[rowSubject] || 0) + 1;
+    }
+  });
+
+  const subjects = {};
+  Object.keys(counts).forEach(subject => {
+    if (counts[subject] > SHARED_EDIT_THRESHOLD) {
+      subjects[subject] = true;
+    }
+  });
+  return subjects;
+}
+
 function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase();
+}
+
+function normalizeSubject(value) {
+  return String(value || '').trim();
 }
 
 function buildResponse(data) {
