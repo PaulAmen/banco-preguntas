@@ -7,7 +7,7 @@ const GAS_URL =
   'https://script.google.com/macros/s/AKfycbxyCedxfmiWS-6_KqfboSGdq9tAKgccLcrlqVtIfWfOpajps0QfcI01fisxOHzSaBalIw/exec';
 
 /**
- * Trae las preguntas propias y las materias habilitadas para visualización compartida.
+ * Trae las preguntas propias, las materias compartidas y la info de revisor.
  * Usa fetch normal (GET simple → CORS permitido por GAS).
  */
 export async function fetchPreguntas(email) {
@@ -18,6 +18,8 @@ export async function fetchPreguntas(email) {
   return {
     preguntas: data.data || [],
     sharedSubjects: data.sharedSubjects || [],
+    esRevisor: data.esRevisor || false,
+    materiasRevision: data.materiasRevision || [],
   };
 }
 

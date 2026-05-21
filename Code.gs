@@ -12,7 +12,7 @@ const HEADERS = [
   'Enunciado', 'Opcion_A_o_Concepto1', 'Opcion_B_o_Definicion1',
   'Opcion_C_o_Concepto2', 'Opcion_D_o_Definicion2',
   'Concepto3', 'Definicion3', 'Concepto4', 'Definicion4',
-  'Respuesta_Correcta', 'Justificacion', 'Nivel_Bloom'
+  'Respuesta_Correcta', 'Justificacion', 'Nivel_Bloom', 'Mala'
 ];
 const BLOOM_REQUIREMENTS = {
   'Comprensión': 3,
@@ -71,26 +71,55 @@ function doGet(e) {
       .getValues();
 
     const sharedSubjects = getSharedEditableSubjects(values, email);
+    const revisorInfo = safeGetRevisorInfo(email);
+
+    // Set de materias que el revisor puede revisar (normalizadas)
+    const materiasRevSet = {};
+    if (revisorInfo.esRevisor) {
+      revisorInfo.materias.forEach(m => {
+        materiasRevSet[normalizeSubject(m).toLowerCase()] = true;
+      });
+    }
+
     const preguntas = values
       .filter(row => {
         const rowEmail = normalizeEmail(row[2]);
         const rowSubject = normalizeSubject(row[3]);
-        return row[0] !== '' && (rowEmail === email || sharedSubjects[rowSubject]);
+        const rowSubjectNorm = rowSubject.toLowerCase();
+        if (row[0] === '') return false;
+        // Siempre incluir propias
+        if (rowEmail === email) return true;
+        // Incluir materias compartidas por threshold
+        if (sharedSubjects[rowSubject]) return true;
+        // Si es revisor con '*', incluir todo lo ajeno
+        if (revisorInfo.esRevisor && revisorInfo.materias.includes('*')) return true;
+        // Si es revisor con materias específicas, incluir las que correspondan
+        if (revisorInfo.esRevisor && materiasRevSet[rowSubjectNorm]) return true;
+        return false;
       })
       .map(row => {
         const obj = {};
         HEADERS.forEach((h, i) => { obj[h] = row[i]; });
         const rowEmail = normalizeEmail(row[2]);
         const rowSubject = normalizeSubject(row[3]);
-        obj.Puede_Editar = rowEmail === email;
-        obj.Edicion_Compartida = rowEmail !== email && !!sharedSubjects[rowSubject];
+        const rowSubjectNorm = rowSubject.toLowerCase();
+        const isOwn = rowEmail === email;
+        const isShared = !isOwn && !!sharedSubjects[rowSubject];
+        const isRevisable = !isOwn && revisorInfo.esRevisor &&
+          (revisorInfo.materias.includes('*') || materiasRevSet[rowSubjectNorm]);
+
+        obj.Puede_Editar = isOwn;
+        obj.Edicion_Compartida = isShared;
+        obj.Puede_Revisar = isRevisable;
         return obj;
       });
 
     return buildResponse({
       success: true,
       data: preguntas,
-      sharedSubjects: Object.keys(sharedSubjects)
+      sharedSubjects: Object.keys(sharedSubjects),
+      esRevisor: revisorInfo.esRevisor,
+      materiasRevision: revisorInfo.materias,
     });
 
   } catch (err) {
@@ -139,25 +168,60 @@ function doPost(e) {
     const lastRow = sheet.getLastRow();
     let targetRow = -1;
     let rows = [];
+    let existingRow = null;
     let ownerEmail = requestEmail;
+    let existingMateria = '';
 
     if (lastRow > 1) {
       rows = sheet.getRange(2, 1, lastRow - 1, HEADERS.length).getValues();
       const idx = rows.findIndex(row => String(row[0]).trim() === id);
       if (idx !== -1) {
-        const existingEmail = normalizeEmail(rows[idx][2]);
-        const isSharedEdit = existingEmail !== requestEmail;
-        if (isSharedEdit) {
-          return buildResponse({
-            success: false,
-            error: 'No puede modificar una pregunta registrada por otro docente.'
-          });
-        }
-        ownerEmail = existingEmail;
+        existingRow = rows[idx];
+        ownerEmail = normalizeEmail(existingRow[2]);
+        existingMateria = normalizeSubject(existingRow[3]);
         targetRow = idx + 2; // +2: fila de cabecera + índice 0
       } else {
         ownerEmail = requestEmail;
       }
+    }
+
+    const isRevisor = safePuedeRevisar(requestEmail);
+    const isOwner = ownerEmail === requestEmail;
+
+    // ── Flujo de REVISOR (modificar Mala en preguntas ajenas) ────
+    if (isRevisor && !isOwner && targetRow > 0) {
+      if (!safePuedeRevisarMateria(requestEmail, existingMateria)) {
+        return buildResponse({
+          success: false,
+          error: 'No tiene permiso para revisar esta materia.'
+        });
+      }
+
+      // Verificar que solo intenta cambiar el campo Mala
+      const cambioSoloMala = HEADERS.every(h => {
+        if (h === 'Mala') return true;
+        const colIndex = HEADERS.indexOf(h);
+        return String(payload[h] != null ? payload[h] : '') === String(existingRow[colIndex] || '');
+      });
+
+      if (!cambioSoloMala) {
+        return buildResponse({
+          success: false,
+          error: 'Como revisor solo puede modificar el campo Mala.'
+        });
+      }
+
+      const malaCol = HEADERS.indexOf('Mala') + 1;
+      sheet.getRange(targetRow, malaCol).setValue(payload.Mala || '');
+      return buildResponse({ success: true, action: 'updated-mala', id });
+    }
+
+    // ── Flujo normal (dueño o nueva pregunta) ────────────────────
+    if (!isOwner && targetRow > 0) {
+      return buildResponse({
+        success: false,
+        error: 'No puede modificar una pregunta registrada por otro docente.'
+      });
     }
 
     payload.Email_Docente = ownerEmail;
@@ -219,6 +283,37 @@ function getSharedEditableSubjects(rows, email) {
     }
   });
   return subjects;
+}
+
+// ------------------------------------------------------------------
+// Wrappers seguros para funciones de Revisores.gs
+// Si Revisores.gs no está desplegado aún, no falla.
+// ------------------------------------------------------------------
+function safeGetRevisorInfo(email) {
+  try {
+    if (typeof getRevisorInfo === 'function') {
+      return getRevisorInfo(email);
+    }
+  } catch (e) { /* ignorar */ }
+  return { esRevisor: false, materias: [] };
+}
+
+function safePuedeRevisar(email) {
+  try {
+    if (typeof puedeRevisar === 'function') {
+      return puedeRevisar(email);
+    }
+  } catch (e) { /* ignorar */ }
+  return false;
+}
+
+function safePuedeRevisarMateria(email, materia) {
+  try {
+    if (typeof puedeRevisarMateria === 'function') {
+      return puedeRevisarMateria(email, materia);
+    }
+  } catch (e) { /* ignorar */ }
+  return false;
 }
 
 function normalizeEmail(value) {

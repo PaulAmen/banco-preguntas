@@ -5,6 +5,7 @@
   import Login          from './lib/Login.svelte';
   import Formulario     from './lib/Formulario.svelte';
   import ListaPreguntas from './lib/ListaPreguntas.svelte';
+  import ReviewPreguntas from './lib/ReviewPreguntas.svelte';
   import { fetchPreguntas, guardarPregunta } from './lib/api.js';
   import logo           from './assets/logo.png';
 
@@ -15,6 +16,31 @@
   let preguntaEnEdicion = $state(null);
   let cargando          = $state(false);
   let mensaje           = $state(null);  // { tipo:'ok'|'err', texto:'' }
+  let mostrandoRevision = $state(false);
+  let esRevisor         = $state(false);
+  let materiasRevision  = $state([]);
+
+  // Preguntas que el revisor puede revisar (viene marcado por el GAS)
+  let preguntasRevision = $derived(
+    esRevisor ? preguntas.filter(p => p.Puede_Revisar) : []
+  );
+
+  $effect(() => {
+    const syncRuta = () => {
+      const quiereRevision = window.location.hash === '#/revision';
+      if (quiereRevision && !esRevisor) {
+        history.pushState('', document.title, window.location.pathname + window.location.search);
+        mostrandoRevision = false;
+      } else {
+        mostrandoRevision = quiereRevision;
+      }
+    };
+
+    syncRuta();
+    window.addEventListener('hashchange', syncRuta);
+
+    return () => window.removeEventListener('hashchange', syncRuta);
+  });
 
   // ── Login ────────────────────────────────────────────────────
   async function handleLogin(userData) {
@@ -29,6 +55,8 @@
     sharedSubjects    = [];
     preguntaEnEdicion = null;
     mensaje           = null;
+    esRevisor         = false;
+    materiasRevision  = [];
   }
 
   // ── Caché sessionStorage ─────────────────────────────────────
@@ -55,6 +83,8 @@
     if (cached) {
       preguntas = cached.preguntas || [];
       sharedSubjects = cached.sharedSubjects || [];
+      esRevisor = cached.esRevisor || false;
+      materiasRevision = cached.materiasRevision || [];
     } else {
       cargando = true;  // spinner solo cuando no hay caché
     }
@@ -64,6 +94,8 @@
       const data = await fetchPreguntas(user.email);
       preguntas = data.preguntas;
       sharedSubjects = data.sharedSubjects;
+      esRevisor = data.esRevisor || false;
+      materiasRevision = data.materiasRevision || [];
       escribirCache(data);
     } catch (e) {
       if (!cached) mostrarMensaje('err', 'No se pudieron cargar las preguntas: ' + e.message);
@@ -130,6 +162,18 @@
     preguntaEnEdicion = null;
   }
 
+  function abrirRevision() {
+    window.location.hash = '#/revision';
+    mostrandoRevision = true;
+  }
+
+  function cerrarRevision() {
+    if (window.location.hash === '#/revision') {
+      history.pushState('', document.title, window.location.pathname + window.location.search);
+    }
+    mostrandoRevision = false;
+  }
+
   function mostrarMensaje(tipo, texto) {
     mensaje = { tipo, texto };
     if (tipo === 'ok') setTimeout(() => { mensaje = null; }, 4000);
@@ -148,6 +192,11 @@
         <span class="short-title">Carrera Educación</span>
       </h1>
       <div style="display:flex; align-items:center; gap:.75rem">
+        {#if esRevisor}
+          <button class="btn-secondary btn-sm" onclick={abrirRevision} disabled={preguntasRevision.length === 0}>
+            Revisión
+          </button>
+        {/if}
         <span class="usuario">{user.name || user.email}</span>
         {#if user.picture}
           <img src={user.picture} alt="avatar"
@@ -197,5 +246,13 @@
     <footer class="app-footer">
       <p>by: <a href="mailto:paul.amen@unesum.edu.ec">paul.amen@unesum.edu.ec</a></p>
     </footer>
+
+    {#if mostrandoRevision && esRevisor}
+      <ReviewPreguntas
+        preguntas={preguntasRevision}
+        onguardar={handleGuardar}
+        oncerrar={cerrarRevision}
+      />
+    {/if}
   </div>
 {/if}
