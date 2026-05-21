@@ -7,6 +7,7 @@
   import ListaPreguntas from './lib/ListaPreguntas.svelte';
   import ReviewPreguntas from './lib/ReviewPreguntas.svelte';
   import { fetchPreguntas, guardarPregunta } from './lib/api.js';
+  import { getBloomConfig } from './lib/bloom.config.js';
   import logo           from './assets/logo.png';
 
   // ── Estado global ───────────────────────────────────────────
@@ -108,23 +109,23 @@
     cargando = true;
     mensaje  = null;
     try {
-      const bloomMeta = {
-        'Comprensión': 3,
-        'Análisis': 4,
-        'Aplicación': 5,
-        'Evaluación': 3,
-        'Síntesis': 5,
-      };
+      const bloomConfig = getBloomConfig(pregunta.Materia);
+      const bloomMeta = bloomConfig.requerimientos;
+      const nivelesValidos = bloomConfig.nivelesValidos;
+
+      // Contar solo preguntas del mismo docente, misma materia, y nivel válido
       const actual = preguntas.filter(p =>
         p.ID_Pregunta !== pregunta.ID_Pregunta &&
         p.Nivel_Bloom === pregunta.Nivel_Bloom &&
-        String(p.Email_Docente || '').toLowerCase() === String(pregunta.Email_Docente || '').toLowerCase()
+        String(p.Email_Docente || '').toLowerCase() === String(pregunta.Email_Docente || '').toLowerCase() &&
+        String(p.Materia || '').trim().toLowerCase() === String(pregunta.Materia || '').trim().toLowerCase()
       ).length;
+
       if (!bloomMeta[pregunta.Nivel_Bloom]) {
-        throw new Error('Seleccione un nivel Bloom válido.');
+        throw new Error('Seleccione un nivel Bloom válido para esta materia.');
       }
-      if (actual + 1 > bloomMeta[pregunta.Nivel_Bloom]) {
-        throw new Error(`Ya alcanzó el máximo de ${bloomMeta[pregunta.Nivel_Bloom]} preguntas para ${pregunta.Nivel_Bloom}.`);
+      if (actual + 1 > bloomMeta[pregunta.Nivel_Bloom].cantidad) {
+        throw new Error(`Ya alcanzó el máximo de ${bloomMeta[pregunta.Nivel_Bloom].cantidad} preguntas para ${pregunta.Nivel_Bloom}.`);
       }
 
       await guardarPregunta({

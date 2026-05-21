@@ -22,6 +22,42 @@ const BLOOM_REQUIREMENTS = {
   'Síntesis': 5
 };
 
+const MATERIAS_ESPECIALES = [
+  'Diseño Curricular',
+  'Metodología de Enseñanza de la Matemática',
+  'Metodología de la Enseñanza de la Química',
+  'Creatividad en la Educación',
+  'Educación Inclusiva',
+  'Redacción Científica y Normas APA',
+  'Técnicas de Estudio e Investigación Científica Educativa',
+  'Estadística Aplicada a la Investigación Educativa',
+  'Titulación II',
+  'Taller de Escritura del Plan de Investigación',
+];
+
+const BLOOM_ESPECIAL = {
+  'Comprensión': 7,
+  'Análisis': 7,
+  'Evaluación': 6,
+};
+
+const NIVELES_VALIDOS_ESPECIAL = ['Comprensión', 'Análisis', 'Evaluación'];
+
+function esMateriaEspecial(materia) {
+  const normalizada = normalizeSubject(materia).toLowerCase();
+  return MATERIAS_ESPECIALES.some(m => normalizeSubject(m).toLowerCase() === normalizada);
+}
+
+function getBloomRequirements(materia) {
+  if (esMateriaEspecial(materia)) return BLOOM_ESPECIAL;
+  return BLOOM_REQUIREMENTS;
+}
+
+function getNivelesValidos(materia) {
+  if (esMateriaEspecial(materia)) return NIVELES_VALIDOS_ESPECIAL;
+  return Object.keys(BLOOM_REQUIREMENTS);
+}
+
 // Crea la hoja si no existe; devuelve siempre el objeto Sheet.
 function initSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -150,8 +186,10 @@ function doPost(e) {
 
     const sheet = initSheet();
     const nivelBloom = String(payload.Nivel_Bloom || '').trim();
-    if (!BLOOM_REQUIREMENTS[nivelBloom]) {
-      return buildResponse({ success: false, error: 'Nivel Bloom requerido o no válido.' });
+    const materiaPayload = String(payload.Materia || '').trim();
+    const bloomReqs = getBloomRequirements(materiaPayload);
+    if (!bloomReqs[nivelBloom]) {
+      return buildResponse({ success: false, error: 'Nivel Bloom requerido o no válido para esta materia.' });
     }
     if (
       String(payload.Tipo_Pregunta || '').trim() === 'Verdadero o Falso' &&
@@ -226,7 +264,7 @@ function doPost(e) {
 
     payload.Email_Docente = ownerEmail;
 
-    const errorDistribucion = validateBloomDistribution(rows, ownerEmail, id, nivelBloom);
+    const errorDistribucion = validateBloomDistribution(rows, ownerEmail, id, nivelBloom, materiaPayload);
     if (errorDistribucion) {
       return buildResponse({ success: false, error: errorDistribucion });
     }
@@ -246,21 +284,27 @@ function doPost(e) {
   }
 }
 
-function validateBloomDistribution(rows, email, id, nivelBloom) {
+function validateBloomDistribution(rows, email, id, nivelBloom, materia) {
+  const bloomReqs = getBloomRequirements(materia);
+  const nivelesValidos = getNivelesValidos(materia);
   const counts = {};
-  Object.keys(BLOOM_REQUIREMENTS).forEach(nivel => { counts[nivel] = 0; });
+  nivelesValidos.forEach(nivel => { counts[nivel] = 0; });
 
   rows.forEach(row => {
     const rowId = String(row[0] || '').trim();
     const rowEmail = normalizeEmail(row[2]);
+    const rowMateria = normalizeSubject(row[3]);
     const rowNivel = String(row[17] || '').trim();
-    if (rowEmail === email && rowId !== id && counts[rowNivel] != null) {
+    // Solo contar preguntas del mismo docente, misma materia, y nivel válido
+    if (rowEmail === email && rowId !== id &&
+        rowMateria.toLowerCase() === normalizeSubject(materia).toLowerCase() &&
+        counts[rowNivel] != null) {
       counts[rowNivel] += 1;
     }
   });
 
-  if ((counts[nivelBloom] + 1) > BLOOM_REQUIREMENTS[nivelBloom]) {
-    return `Ya alcanzó el máximo de ${BLOOM_REQUIREMENTS[nivelBloom]} preguntas para ${nivelBloom}.`;
+  if ((counts[nivelBloom] + 1) > bloomReqs[nivelBloom]) {
+    return `Ya alcanzó el máximo de ${bloomReqs[nivelBloom]} preguntas para ${nivelBloom}.`;
   }
   return '';
 }
