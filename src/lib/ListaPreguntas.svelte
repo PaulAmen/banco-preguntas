@@ -9,13 +9,25 @@
   import { getBloomConfig } from './bloom.config.js';
 
   const META = 20;
-  const BLOOM_META = [
-    { nivel: 'Comprensión', cantidad: 3, porcentaje: '15%' },
-    { nivel: 'Análisis', cantidad: 4, porcentaje: '20%' },
-    { nivel: 'Aplicación', cantidad: 5, porcentaje: '25%' },
-    { nivel: 'Evaluación', cantidad: 3, porcentaje: '15%' },
-    { nivel: 'Síntesis', cantidad: 5, porcentaje: '25%' },
-  ];
+
+  // ── Config Bloom dinámica según materia activa ──────────────
+  const bloomConfigActual = $derived(
+    materiaCompartidaActiva
+      ? getBloomConfig(materiaCompartidaActiva)
+      : (() => {
+          const materiasUnicas = [...new Set(preguntasPropias.map(p => p.Materia).filter(Boolean))];
+          if (materiasUnicas.length === 1) return getBloomConfig(materiasUnicas[0]);
+          return getBloomConfig('');
+        })()
+  );
+
+  const BLOOM_META = $derived(
+    Object.entries(bloomConfigActual.requerimientos).map(([nivel, data]) => ({
+      nivel,
+      cantidad: data.cantidad,
+      porcentaje: data.porcentaje,
+    }))
+  );
 
   // Preguntas propias que cuentan para la meta (según materia y nivel válido)
   const preguntasPropiasValidas = $derived(
@@ -23,6 +35,16 @@
       const config = getBloomConfig(p.Materia);
       return config.nivelesValidos.includes(p.Nivel_Bloom);
     })
+  );
+
+  // Preguntas que cuentan para el progreso según materia activa
+  const progresoBase = $derived(
+    materiaCompartidaActiva
+      ? preguntasPropias.filter(p =>
+          p.Materia === materiaCompartidaActiva &&
+          bloomConfigActual.nivelesValidos.includes(p.Nivel_Bloom)
+        )
+      : preguntasPropiasValidas
   );
 
   const TIPO_CLASE = {
@@ -65,7 +87,11 @@
   }
 
   function totalPorNivel(nivel) {
-    return preguntasPropiasValidas.filter(p => p.Nivel_Bloom === nivel).length;
+    // Si hay materia activa, contar solo de esa materia; si no, contar todas las válidas
+    const base = materiaCompartidaActiva
+      ? preguntasPropias.filter(p => p.Materia === materiaCompartidaActiva)
+      : preguntasPropiasValidas;
+    return base.filter(p => p.Nivel_Bloom === nivel).length;
   }
 
   function distribucionCompleta() {
@@ -281,10 +307,10 @@
 
 <!-- Contador de progreso -->
 <div class="progreso">
-  {preguntasPropiasValidas.length} <span>/ {META} preguntas válidas registradas</span>
-  {#if preguntasPropias.length > preguntasPropiasValidas.length}
+  {progresoBase.length} <span>/ {META} preguntas válidas registradas</span>
+  {#if bloomConfigActual.esEspecial}
     <small style="display:block;color:var(--texto-sub)">
-      ({preguntasPropias.length - preguntasPropiasValidas.length} con nivel Bloom no contado para esta materia)
+      Materia especial: solo Comprensión, Análisis y Evaluación cuentan
     </small>
   {/if}
 </div>
@@ -335,13 +361,13 @@
 <div style="height:12px; background:var(--azul-tenue); border-radius:999px; margin-bottom:1.5rem; overflow:hidden; border: 1px solid var(--borde)">
   <div style="
     height:100%;
-    width:{Math.min(preguntasPropiasValidas.length / META * 100, 100)}%;
-    background: {preguntasPropiasValidas.length >= META ? 'var(--ok)' : 'var(--azul)'};
+    width:{Math.min(progresoBase.length / META * 100, 100)}%;
+    background: {progresoBase.length >= META ? 'var(--ok)' : 'var(--azul)'};
     transition: width .6s cubic-bezier(0.34, 1.56, 0.64, 1);
   "></div>
 </div>
 
-{#if preguntasPropiasValidas.length >= META && distribucionCompleta()}
+{#if progresoBase.length >= META && distribucionCompleta()}
   <div class="alerta alerta-ok" style="margin-bottom:1.5rem">
     <span>✨</span> ¡Banco completo! Has registrado las {META} preguntas con la distribución Bloom requerida.
   </div>
