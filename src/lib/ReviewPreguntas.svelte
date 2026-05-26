@@ -7,15 +7,26 @@
   let { preguntas, onguardar, oncerrar } = $props();
   
   let index = $state(0);
+  let guardando = $state(false);
 
   const total = $derived(preguntas.length);
   const p     = $derived(preguntas[index]);
 
-  async function marcarMala() {
-    const preguntaActualizada = { ...p, Mala: 'm' };
-    const ok = await onguardar(preguntaActualizada);
-    if (ok) siguiente();
+  async function marcarRevision(valor) {
+    if (!p || guardando) return;
+    guardando = true;
+    try {
+      const preguntaActualizada = { ...p, Mala: valor };
+      const ok = await onguardar(preguntaActualizada);
+      if (ok) siguiente();
+    } finally {
+      guardando = false;
+    }
   }
+
+  const marcarBien = () => marcarRevision('');
+  const marcarEstructura = () => marcarRevision('e');
+  const marcarContenido = () => marcarRevision('c');
 
   function siguiente() {
     if (index < total - 1) {
@@ -29,13 +40,23 @@
     if (index > 0) index--;
   }
 
-  function esc(s) {
-    if (s == null) return '';
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+  $effect(() => {
+    const handleKeydown = (event) => {
+      if (!p) return;
+      if (event.key === '1') marcarBien();
+      if (event.key === '2') marcarEstructura();
+      if (event.key === '3') marcarContenido();
+    };
+
+    window.addEventListener('keydown', handleKeydown);
+    return () => window.removeEventListener('keydown', handleKeydown);
+  });
+
+  function etiquetaMala(valor) {
+    if (valor === 'e') return 'Estructura';
+    if (valor === 'c') return 'Contenido';
+    if (valor === 'm') return 'Mala';
+    return '';
   }
 </script>
 
@@ -53,8 +74,8 @@
           <span><strong>Materia:</strong> {p.Materia}</span>
           <span><strong>Tema:</strong> {p.Tema}</span>
           <span><strong>Tipo:</strong> {p.Tipo_Pregunta}</span>
-          {#if p.Mala === 'm'}
-            <span class="badge-mala">Mala</span>
+          {#if etiquetaMala(p.Mala)}
+            <span class="badge-mala">{etiquetaMala(p.Mala)}</span>
           {/if}
         </div>
 
@@ -98,11 +119,14 @@
            </button>
         </div>
         <div class="action-btns">
-          <button class="btn-danger" onclick={marcarMala}>
-            🚫 Mala
+          <button class="btn-ok" onclick={marcarBien} disabled={guardando} title="Pregunta correcta">
+            ✓ Bien
           </button>
-          <button class="btn-primary" onclick={siguiente}>
-            ➡️ Siguiente
+          <button class="btn-danger" onclick={marcarEstructura} disabled={guardando} title="Mal planteada en estructura">
+            Estructura
+          </button>
+          <button class="btn-danger" onclick={marcarContenido} disabled={guardando} title="Mal planteada en contenido">
+            Contenido
           </button>
         </div>
       </footer>
@@ -228,8 +252,9 @@
     display: flex;
     gap: 0.75rem;
   }
+  .btn-ok { background: var(--ok); color: white; padding: 0.6rem 1.5rem; font-size: 1rem; }
+  .btn-ok:hover { background: #047857; transform: translateY(-1px); }
   .btn-danger { background: var(--err); color: white; padding: 0.6rem 1.5rem; font-size: 1rem; }
-  .btn-primary { padding: 0.6rem 1.5rem; font-size: 1rem; }
   .btn-danger:hover { background: #b91c1c; transform: translateY(-1px); }
 
   @media (max-width: 640px) {

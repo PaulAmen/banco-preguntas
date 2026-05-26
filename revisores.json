@@ -1,0 +1,92 @@
+[
+  {
+    "correo_docente": "ronny.avila@unesum.edu.ec",
+    "materias": [
+      "Taller de Escritura del Plan de Investigación",
+      "Proyectos Educativos",
+      "Técnicas de Estudio e Investigación Científica Educativa",
+      "Realidad Socioeconómica Cultural y Ecológica del Ecuador"
+    ]
+  },
+  {
+    "correo_docente": "stalin.leon@unesum.edu.ec",
+    "materias": [
+      "Filosofía de la Educación",
+      "Lenguaje y Comunicación",
+      "Pedagogía",
+      "Ética Pedagógica"
+    ]
+  },
+  {
+    "correo_docente": "melissa.canarte@unesum.edu.ec",
+    "materias": [
+      "Gestión Educativa",
+      "Metodología de la Investigación Educativa",
+      "Psicología Educativa",
+      "Desarrollo Humano"
+    ]
+  },
+  {
+    "correo_docente": "shirley.zambrano@unesum.edu.ec",
+    "materias": [
+      "Creatividad en la Educación",
+      "Didáctica de la Lengua y Literatura",
+      "Elaboración y Aplicación de Medios de Enseñanza",
+      "Inglés I y II"
+    ]
+  },
+  {
+    "correo_docente": "holanda.ayon@unesum.edu.ec",
+    "materias": [
+      "Neurociencia en el Aprendizaje",
+      "Didáctica General",
+      "Diagnóstico Pedagógico",
+      "Informática Aplicada a la Educación"
+    ]
+  },
+  {
+    "correo_docente": "henry.guerrero@unesum.edu.ec",
+    "materias": [
+      "Diseño Curricular",
+      "Metodología de Enseñanza de la Matemática",
+      "Educación Inclusiva",
+      "Educación para la identidad, sexualidad y convivencia"
+    ]
+  },
+  {
+    "correo_docente": "jahiry.molineros@unesum.edu.ec",
+    "materias": [
+      "Inglés III y IV",
+      "Educación Ambiental",
+      "Didáctica de las Ciencias Sociales",
+      "Saberes y Lenguas Ancestrales del Ecuador"
+    ]
+  },
+  {
+    "correo_docente": "fernanda.quijije@unesum.edu.ec",
+    "materias": [
+      "Estadística Aplicada a la Investigación Educativa",
+      "Didáctica de las Ciencias Naturales",
+      "Evaluación Educativa",
+      "Didáctica de las Ciencias Exactas"
+    ]
+  },
+  {
+    "correo_docente": "laura.hidalgo@unesum.edu.ec",
+    "materias": [
+      "Emprendimiento e Innovación",
+      "Titulación I",
+      "Redacción Científica y Normas APA",
+      "Titulación II"
+    ]
+  },
+  {
+    "correo_docente": "brenda.alvarez@unesum.edu.ec",
+    "materias": [
+      "Metodología de la Enseñanza de la Química",
+      "Relación Institución y Comunidad",
+      "Didáctica de la Educación Cultural y Artística",
+      "Didáctica de la Educación Física"
+    ]
+  }
+]

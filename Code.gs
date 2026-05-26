@@ -14,6 +14,7 @@ const HEADERS = [
   'Concepto3', 'Definicion3', 'Concepto4', 'Definicion4',
   'Respuesta_Correcta', 'Justificacion', 'Nivel_Bloom', 'Mala'
 ];
+const CODIGOS_REVISION = ['', 'e', 'c'];
 const BLOOM_REQUIREMENTS = {
   'Comprensión': 3,
   'Análisis': 4,
@@ -249,8 +250,16 @@ function doPost(e) {
         });
       }
 
+      const valorMala = String(payload.Mala || '').trim().toLowerCase();
+      if (!CODIGOS_REVISION.includes(valorMala)) {
+        return buildResponse({
+          success: false,
+          error: 'Código de revisión no válido.'
+        });
+      }
+
       const malaCol = HEADERS.indexOf('Mala') + 1;
-      sheet.getRange(targetRow, malaCol).setValue(payload.Mala || '');
+      sheet.getRange(targetRow, malaCol).setValue(valorMala);
       return buildResponse({ success: true, action: 'updated-mala', id });
     }
 

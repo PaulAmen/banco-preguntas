@@ -109,23 +109,28 @@
     cargando = true;
     mensaje  = null;
     try {
-      const bloomConfig = getBloomConfig(pregunta.Materia);
-      const bloomMeta = bloomConfig.requerimientos;
-      const nivelesValidos = bloomConfig.nivelesValidos;
+      const esRevision =
+        pregunta.Puede_Revisar &&
+        String(pregunta.Email_Docente || '').trim().toLowerCase() !== String(user.email || '').trim().toLowerCase();
 
-      // Contar solo preguntas del mismo docente, misma materia, y nivel válido
-      const actual = preguntas.filter(p =>
-        p.ID_Pregunta !== pregunta.ID_Pregunta &&
-        p.Nivel_Bloom === pregunta.Nivel_Bloom &&
-        String(p.Email_Docente || '').toLowerCase() === String(pregunta.Email_Docente || '').toLowerCase() &&
-        String(p.Materia || '').trim().toLowerCase() === String(pregunta.Materia || '').trim().toLowerCase()
-      ).length;
+      if (!esRevision) {
+        const bloomConfig = getBloomConfig(pregunta.Materia);
+        const bloomMeta = bloomConfig.requerimientos;
 
-      if (!bloomMeta[pregunta.Nivel_Bloom]) {
-        throw new Error('Seleccione un nivel Bloom válido para esta materia.');
-      }
-      if (actual + 1 > bloomMeta[pregunta.Nivel_Bloom].cantidad) {
-        throw new Error(`Ya alcanzó el máximo de ${bloomMeta[pregunta.Nivel_Bloom].cantidad} preguntas para ${pregunta.Nivel_Bloom}.`);
+        // Contar solo preguntas del mismo docente, misma materia, y nivel válido
+        const actual = preguntas.filter(p =>
+          p.ID_Pregunta !== pregunta.ID_Pregunta &&
+          p.Nivel_Bloom === pregunta.Nivel_Bloom &&
+          String(p.Email_Docente || '').toLowerCase() === String(pregunta.Email_Docente || '').toLowerCase() &&
+          String(p.Materia || '').trim().toLowerCase() === String(pregunta.Materia || '').trim().toLowerCase()
+        ).length;
+
+        if (!bloomMeta[pregunta.Nivel_Bloom]) {
+          throw new Error('Seleccione un nivel Bloom válido para esta materia.');
+        }
+        if (actual + 1 > bloomMeta[pregunta.Nivel_Bloom].cantidad) {
+          throw new Error(`Ya alcanzó el máximo de ${bloomMeta[pregunta.Nivel_Bloom].cantidad} preguntas para ${pregunta.Nivel_Bloom}.`);
+        }
       }
 
       await guardarPregunta({
@@ -137,12 +142,12 @@
       const idx = preguntas.findIndex(p => p.ID_Pregunta === pregunta.ID_Pregunta);
       if (idx >= 0) {
         preguntas[idx] = pregunta;
-        mostrarMensaje('ok', 'Pregunta actualizada.');
+        mostrarMensaje('ok', esRevision ? 'Revisión registrada.' : 'Pregunta actualizada.');
       } else {
         preguntas.push(pregunta);
         mostrarMensaje('ok', 'Pregunta guardada.');
       }
-      escribirCache({ preguntas, sharedSubjects });
+      escribirCache({ preguntas, sharedSubjects, esRevisor, materiasRevision });
 
       preguntaEnEdicion = null;
       return true;
