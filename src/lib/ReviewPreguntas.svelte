@@ -121,12 +121,12 @@
           {/if}
 
           <div class="comentario-revision">
-            <label for="comentario-revision">Comentario opcional</label>
+            <label for="comentario-revision">Observación del revisor <span>opcional</span></label>
             <textarea
               id="comentario-revision"
               bind:value={comentario}
               rows="3"
-              placeholder="Opcional: agregue una observación para estructura o contenido."
+              placeholder="Escriba una observación si desea dejar contexto para esta revisión."
               disabled={guardando}
             ></textarea>
           </div>
@@ -264,28 +264,44 @@
   }
   .comentario-revision {
     margin-top: 1.5rem;
+    padding: 1rem;
+    border: 1px solid #f59e0b;
+    border-left: 5px solid #d97706;
+    border-radius: 8px;
+    background: #fffbeb;
   }
   .comentario-revision label {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     margin-bottom: 0.4rem;
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--texto-sub);
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #92400e;
+  }
+  .comentario-revision label span {
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    background: #fef3c7;
+    color: #b45309;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
   }
   .comentario-revision textarea {
     width: 100%;
     resize: vertical;
     min-height: 82px;
     padding: 0.75rem 0.9rem;
-    border: 1px solid var(--borde);
+    border: 1px solid #fbbf24;
     border-radius: 8px;
     font: inherit;
     color: var(--texto);
     background: white;
   }
   .comentario-revision textarea:focus {
-    outline: 2px solid var(--azul-tenue);
-    border-color: var(--azul);
+    outline: 2px solid #fde68a;
+    border-color: #d97706;
   }
   .review-footer {
     padding: 1rem 2rem;
