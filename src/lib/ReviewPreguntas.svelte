@@ -8,6 +8,7 @@
   
   let index = $state(0);
   let guardando = $state(false);
+  let comentario = $state('');
 
   const total = $derived(preguntas.length);
   const p     = $derived(preguntas[index]);
@@ -16,7 +17,11 @@
     if (!p || guardando) return;
     guardando = true;
     try {
-      const preguntaActualizada = { ...p, Mala: valor };
+      const preguntaActualizada = {
+        ...p,
+        Mala: valor,
+        Comentario_Revision: valor ? comentario.trim() : '',
+      };
       const ok = await onguardar(preguntaActualizada);
       if (ok) siguiente();
     } finally {
@@ -41,8 +46,13 @@
   }
 
   $effect(() => {
+    comentario = p?.Comentario_Revision || '';
+  });
+
+  $effect(() => {
     const handleKeydown = (event) => {
       if (!p) return;
+      if (event.target?.closest?.('input, textarea, select')) return;
       if (event.key === '1') marcarBien();
       if (event.key === '2') marcarEstructura();
       if (event.key === '3') marcarContenido();
@@ -109,6 +119,17 @@
               <strong>Justificación:</strong> {p.Justificacion}
             </div>
           {/if}
+
+          <div class="comentario-revision">
+            <label for="comentario-revision">Comentario opcional</label>
+            <textarea
+              id="comentario-revision"
+              bind:value={comentario}
+              rows="3"
+              placeholder="Opcional: agregue una observación para estructura o contenido."
+              disabled={guardando}
+            ></textarea>
+          </div>
         </div>
       </div>
 
@@ -120,13 +141,13 @@
         </div>
         <div class="action-btns">
           <button class="btn-ok" onclick={marcarBien} disabled={guardando} title="Pregunta correcta">
-            ✓ Bien
+            1 Bien
           </button>
           <button class="btn-danger" onclick={marcarEstructura} disabled={guardando} title="Mal planteada en estructura">
-            Estructura
+            2 Estructura
           </button>
           <button class="btn-danger" onclick={marcarContenido} disabled={guardando} title="Mal planteada en contenido">
-            Contenido
+            3 Contenido
           </button>
         </div>
       </footer>
@@ -240,6 +261,31 @@
     border: 1px solid #d1fae5;
     font-size: 1rem;
     color: var(--ok);
+  }
+  .comentario-revision {
+    margin-top: 1.5rem;
+  }
+  .comentario-revision label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--texto-sub);
+  }
+  .comentario-revision textarea {
+    width: 100%;
+    resize: vertical;
+    min-height: 82px;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    font: inherit;
+    color: var(--texto);
+    background: white;
+  }
+  .comentario-revision textarea:focus {
+    outline: 2px solid var(--azul-tenue);
+    border-color: var(--azul);
   }
   .review-footer {
     padding: 1rem 2rem;

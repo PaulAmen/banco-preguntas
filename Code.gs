@@ -106,6 +106,11 @@ function doGet(e) {
     const values = sheet
       .getRange(2, 1, lastRow - 1, HEADERS.length)
       .getValues();
+    const malaCol = HEADERS.indexOf('Mala') + 1;
+    const malaNotes = sheet
+      .getRange(2, malaCol, lastRow - 1, 1)
+      .getNotes()
+      .map(row => row[0] || '');
 
     const sharedSubjects = getSharedEditableSubjects(values, email);
     const revisorInfo = safeGetRevisorInfo(email);
@@ -119,7 +124,8 @@ function doGet(e) {
     }
 
     const preguntas = values
-      .filter(row => {
+      .map((row, index) => ({ row, comentarioRevision: malaNotes[index] }))
+      .filter(({ row }) => {
         const rowEmail = normalizeEmail(row[2]);
         const rowSubject = normalizeSubject(row[3]);
         const rowSubjectNorm = rowSubject.toLowerCase();
@@ -134,7 +140,7 @@ function doGet(e) {
         if (revisorInfo.esRevisor && materiasRevSet[rowSubjectNorm]) return true;
         return false;
       })
-      .map(row => {
+      .map(({ row, comentarioRevision }) => {
         const obj = {};
         HEADERS.forEach((h, i) => { obj[h] = row[i]; });
         const rowEmail = normalizeEmail(row[2]);
@@ -148,6 +154,7 @@ function doGet(e) {
         obj.Puede_Editar = isOwn;
         obj.Edicion_Compartida = isShared;
         obj.Puede_Revisar = isRevisable;
+        obj.Comentario_Revision = comentarioRevision;
         return obj;
       });
 
@@ -186,22 +193,6 @@ function doPost(e) {
     }
 
     const sheet = initSheet();
-    const nivelBloom = String(payload.Nivel_Bloom || '').trim();
-    const materiaPayload = String(payload.Materia || '').trim();
-    const bloomReqs = getBloomRequirements(materiaPayload);
-    if (!bloomReqs[nivelBloom]) {
-      return buildResponse({ success: false, error: 'Nivel Bloom requerido o no válido para esta materia.' });
-    }
-    if (
-      String(payload.Tipo_Pregunta || '').trim() === 'Verdadero o Falso' &&
-      String(payload.Respuesta_Correcta || '').trim() === 'Falso' &&
-      !String(payload.Justificacion || '').trim()
-    ) {
-      return buildResponse({
-        success: false,
-        error: 'Si la respuesta es Falso, debe justificar por qué la afirmación es incorrecta.'
-      });
-    }
 
     // Buscar si el ID ya existe
     const lastRow = sheet.getLastRow();
@@ -236,20 +227,6 @@ function doPost(e) {
         });
       }
 
-      // Verificar que solo intenta cambiar el campo Mala
-      const cambioSoloMala = HEADERS.every(h => {
-        if (h === 'Mala') return true;
-        const colIndex = HEADERS.indexOf(h);
-        return String(payload[h] != null ? payload[h] : '') === String(existingRow[colIndex] || '');
-      });
-
-      if (!cambioSoloMala) {
-        return buildResponse({
-          success: false,
-          error: 'Como revisor solo puede modificar el campo Mala.'
-        });
-      }
-
       const valorMala = String(payload.Mala || '').trim().toLowerCase();
       if (!CODIGOS_REVISION.includes(valorMala)) {
         return buildResponse({
@@ -258,8 +235,15 @@ function doPost(e) {
         });
       }
 
+      const notaRevision = valorMala ? String(payload.Comentario_Revision || '').trim() : '';
       const malaCol = HEADERS.indexOf('Mala') + 1;
-      sheet.getRange(targetRow, malaCol).setValue(valorMala);
+      const malaCell = sheet.getRange(targetRow, malaCol);
+      malaCell.setValue(valorMala);
+      if (notaRevision) {
+        malaCell.setNote(notaRevision);
+      } else {
+        malaCell.clearNote();
+      }
       return buildResponse({ success: true, action: 'updated-mala', id });
     }
 
@@ -272,6 +256,23 @@ function doPost(e) {
     }
 
     payload.Email_Docente = ownerEmail;
+
+    const nivelBloom = String(payload.Nivel_Bloom || '').trim();
+    const materiaPayload = String(payload.Materia || '').trim();
+    const bloomReqs = getBloomRequirements(materiaPayload);
+    if (!bloomReqs[nivelBloom]) {
+      return buildResponse({ success: false, error: 'Nivel Bloom requerido o no válido para esta materia.' });
+    }
+    if (
+      String(payload.Tipo_Pregunta || '').trim() === 'Verdadero o Falso' &&
+      String(payload.Respuesta_Correcta || '').trim() === 'Falso' &&
+      !String(payload.Justificacion || '').trim()
+    ) {
+      return buildResponse({
+        success: false,
+        error: 'Si la respuesta es Falso, debe justificar por qué la afirmación es incorrecta.'
+      });
+    }
 
     const errorDistribucion = validateBloomDistribution(rows, ownerEmail, id, nivelBloom, materiaPayload);
     if (errorDistribucion) {

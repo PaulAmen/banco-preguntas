@@ -133,10 +133,18 @@
         }
       }
 
-      await guardarPregunta({
-        ...pregunta,
-        Solicitante_Email: user.email,
-      });
+      await guardarPregunta(esRevision
+        ? {
+          ID_Pregunta: pregunta.ID_Pregunta,
+          Mala: pregunta.Mala,
+          Comentario_Revision: pregunta.Comentario_Revision || '',
+          Solicitante_Email: user.email,
+        }
+        : {
+            ...pregunta,
+            Solicitante_Email: user.email,
+          }
+      );
 
       // Actualizar array local sin re-fetch a GAS
       const idx = preguntas.findIndex(p => p.ID_Pregunta === pregunta.ID_Pregunta);
