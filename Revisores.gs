@@ -93,12 +93,7 @@ const REVISORES = [
    },
    {
       email: 'laura.hidalgo@unesum.edu.ec',
-      materias: [
-         'Emprendimiento e Innovación',
-         'Titulación I',
-         'Redacción Científica y Normas APA',
-         'Titulación II',
-      ],
+      materias: ['Redacción Científica y Normas APA', 'Titulación II'],
    },
    {
       email: 'brenda.alvarez@unesum.edu.ec',
