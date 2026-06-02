@@ -56,7 +56,7 @@ const REVISORES = [
       ],
    },
    {
-      email: 'holanda.ayon@unesum.edu.ec',
+      email: 'victoria.ayon@unesum.edu.ec',
       materias: [
          'Neurociencia en el Aprendizaje',
          'Didáctica General',
