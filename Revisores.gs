@@ -25,7 +25,7 @@ const REVISORES = [
       ],
    },
    {
-      email: 'geomayra.cevalllos@unesum.edu.ec',
+      email: 'geomayra.cevallos@unesum.edu.ec',
       materias: ['Emprendimiento e Innovación', 'Titulación I'],
    },
    {
