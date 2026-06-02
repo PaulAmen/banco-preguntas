@@ -176,6 +176,13 @@
     preguntaEnEdicion = null;
   }
 
+  async function handleResolverRevision(p) {
+    await handleGuardar({
+      ...p,
+      Mala: '',
+    });
+  }
+
   function abrirRevision() {
     window.location.hash = '#/revision';
     mostrandoRevision = true;
@@ -205,7 +212,7 @@
         <span class="full-title">Carrera Educación &bull; Banco de Preguntas</span>
         <span class="short-title">Carrera Educación</span>
       </h1>
-      <div style="display:flex; align-items:center; gap:.75rem">
+      <div class="header-actions">
         {#if esRevisor}
           <button class="btn-secondary btn-sm" onclick={abrirRevision} disabled={preguntasRevision.length === 0}>
             Revisión
@@ -213,8 +220,7 @@
         {/if}
         <span class="usuario">{user.name || user.email}</span>
         {#if user.picture}
-          <img src={user.picture} alt="avatar"
-               style="width:32px;height:32px;border-radius:50%;border:1px solid var(--borde)" />
+          <img src={user.picture} alt="avatar" class="avatar-header" />
         {/if}
         <button class="btn-secondary btn-sm" onclick={handleLogout}>Salir</button>
       </div>
@@ -248,6 +254,7 @@
             {preguntas}
             {cargando}
             oneditar={handleEditar}
+            onresolver={handleResolverRevision}
             email={user.email}
             nombre={user.name}
             {sharedSubjects}
@@ -264,6 +271,7 @@
     {#if mostrandoRevision && esRevisor}
       <ReviewPreguntas
         preguntas={preguntasRevision}
+        storageKey={`bp_revision_index_${user.email}`}
         onguardar={handleGuardar}
         oncerrar={cerrarRevision}
       />

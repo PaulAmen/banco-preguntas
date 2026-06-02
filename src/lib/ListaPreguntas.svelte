@@ -3,8 +3,8 @@
   // ListaPreguntas.svelte — Columna derecha: listado y progreso
   // ============================================================
 
-  /** @type {{ preguntas: any[], cargando: boolean, oneditar: (p:any)=>void, email?: string, nombre?: string, sharedSubjects?: string[] }} */
-  let { preguntas, cargando, oneditar, email = '', nombre = '', sharedSubjects = [] } = $props();
+  /** @type {{ preguntas: any[], cargando: boolean, oneditar: (p:any)=>void, onresolver?: (p:any)=>void, email?: string, nombre?: string, sharedSubjects?: string[] }} */
+  let { preguntas, cargando, oneditar, onresolver = () => {}, email = '', nombre = '', sharedSubjects = [] } = $props();
 
   import { getBloomConfig } from './bloom.config.js';
 
@@ -67,6 +67,9 @@
       ? preguntas.filter(p => p.Materia === materiaCompartidaActiva)
       : preguntasPropias
   );
+  const hayCorreccionesVisibles = $derived(
+    preguntasVisibles.some(p => requiereCorreccion(p) || tieneComentarioRevision(p))
+  );
 
   $effect(() => {
     if (materiaCompartidaActiva && !materiasCompartidas.includes(materiaCompartidaActiva)) {
@@ -78,6 +81,26 @@
   function cortar(txt, n = 70) {
     if (!txt) return '—';
     return txt.length > n ? txt.slice(0, n) + '…' : txt;
+  }
+
+  function esPreguntaPropia(p) {
+    return String(p?.Email_Docente || '').trim().toLowerCase() === emailNormalizado;
+  }
+
+  function requiereCorreccion(p) {
+    return esPreguntaPropia(p) && ['e', 'c', 'm'].includes(String(p?.Mala || '').trim().toLowerCase());
+  }
+
+  function tieneComentarioRevision(p) {
+    return esPreguntaPropia(p) && !!String(p?.Comentario_Revision || '').trim();
+  }
+
+  function etiquetaRevision(valor) {
+    const codigo = String(valor || '').trim().toLowerCase();
+    if (codigo === 'e') return 'Corregir estructura';
+    if (codigo === 'c') return 'Corregir contenido';
+    if (codigo === 'm') return 'Corregir pregunta';
+    return '';
   }
 
   function fechaHoy() {
@@ -391,15 +414,18 @@
           <th>Tipo</th>
           <th>Bloom</th>
           <th>Enunciado</th>
+          {#if hayCorreccionesVisibles}
+            <th>Revisión</th>
+          {/if}
           {#if materiaCompartidaActiva}
             <th>Docente</th>
           {/if}
-          <th></th>
+          <th>Acción</th>
         </tr>
       </thead>
       <tbody>
         {#each preguntasVisibles as p, i}
-          <tr>
+          <tr class:requiere-correccion={requiereCorreccion(p)}>
             <td>{i + 1}</td>
             <td style="max-width:120px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis"
                 title={p.Materia}>{cortar(p.Materia, 25)}</td>
@@ -409,6 +435,33 @@
             </td>
             <td>{p.Nivel_Bloom || '—'}</td>
             <td>{cortar(p.Enunciado, 60)}</td>
+            {#if hayCorreccionesVisibles}
+              <td>
+                {#if requiereCorreccion(p)}
+                  <div class="revision-alerta">
+                    <span>{etiquetaRevision(p.Mala)}</span>
+                    {#if p.Comentario_Revision}
+                      <p>{p.Comentario_Revision}</p>
+                    {/if}
+                    <button
+                      type="button"
+                      class="btn-resuelto"
+                      onclick={() => onresolver(p)}
+                      disabled={cargando}
+                    >
+                      Marcar resuelto
+                    </button>
+                  </div>
+                {:else if tieneComentarioRevision(p)}
+                  <div class="revision-resuelta">
+                    <span>Revisión resuelta</span>
+                    <p>{p.Comentario_Revision}</p>
+                  </div>
+                {:else}
+                  <span class="revision-ok">Sin observación</span>
+                {/if}
+              </td>
+            {/if}
             {#if materiaCompartidaActiva}
               <td>
                 <span class="docente-badge" class:compartida={p.Edicion_Compartida}>
@@ -418,7 +471,9 @@
             {/if}
             <td>
               {#if p.Puede_Editar !== false}
-                <button class="btn-editar" onclick={() => oneditar(p)}>Editar</button>
+                <button class="btn-editar" class:btn-corregir={requiereCorreccion(p)} onclick={() => oneditar(p)}>
+                  {requiereCorreccion(p) ? 'Corregir' : 'Editar'}
+                </button>
               {:else}
                 <span class="solo-lectura">Solo lectura</span>
               {/if}
