@@ -258,11 +258,12 @@
       font-size: 12pt;
       line-height: 1.5;
       color: #000;
-      width: 21cm;
       min-height: 29.7cm;
       margin: 0;
       padding: 0 2.54cm 1.8cm 2.54cm;
       position: relative;
+      background-repeat: no-repeat;
+      background-position: left top;
     }
     table { border-collapse: collapse; width: 100%; }
     .contenido-word {
