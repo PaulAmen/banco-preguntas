@@ -225,27 +225,58 @@
     `;
 
     if (esWord) {
+      const imgMembreteWord = membreteB64
+        ? `<img class="membrete-word" src="${membreteB64}" alt="">`
+        : '';
+
       return `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <style>
-    body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.5; color: #000; }
+    body {
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 12pt;
+      line-height: 1.5;
+      color: #000;
+      width: 21cm;
+      min-height: 29.7cm;
+      margin: 0;
+      padding: 4.9cm 2.54cm 1.8cm 2.54cm;
+      position: relative;
+    }
     table { border-collapse: collapse; width: 100%; }
+    .membrete-word {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 21cm;
+      height: 29.7cm;
+      z-index: 0;
+      mso-position-horizontal: absolute;
+      mso-position-vertical: absolute;
+    }
+    .contenido-word {
+      position: relative;
+      z-index: 1;
+    }
   </style>
 </head>
 <body>
-  <table width="100%" style="border-top:1.5pt solid #000;border-bottom:1.5pt solid #000;padding:.5em 0;margin-bottom:1.5em;">
-    <tr>
-      <td style="font-size:14pt;font-weight:bold;">Banco de Preguntas</td>
-      <td align="right" style="font-size:11pt;">
-        <strong>Docente:</strong> ${esc(nombre || email)}<br>
-        <strong>Correo:</strong> ${esc(email)}<br>
-        <strong>Total:</strong> ${preguntasExportables.length} preguntas &nbsp; <strong>Fecha:</strong> ${fecha}
-      </td>
-    </tr>
-  </table>
-  ${preguntasHTML}
+  ${imgMembreteWord}
+  <div class="contenido-word">
+    <table width="100%" style="border-top:1.5pt solid #000;border-bottom:1.5pt solid #000;padding:.5em 0;margin-bottom:1.5em;">
+      <tr>
+        <td style="font-size:14pt;font-weight:bold;">Banco de Preguntas</td>
+        <td align="right" style="font-size:11pt;">
+          <strong>Docente:</strong> ${esc(nombre || email)}<br>
+          <strong>Correo:</strong> ${esc(email)}<br>
+          <strong>Total:</strong> ${preguntasExportables.length} preguntas &nbsp; <strong>Fecha:</strong> ${fecha}
+        </td>
+      </tr>
+    </table>
+    ${preguntasHTML}
+  </div>
 </body>
 </html>`.trim();
     }
