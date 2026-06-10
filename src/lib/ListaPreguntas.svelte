@@ -251,27 +251,56 @@
     }
 
     const imgMembrete = membreteB64
-      ? `<img src="${membreteB64}" alt="" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;">`
+      ? `<img class="membrete-pdf" src="${membreteB64}" alt="">`
       : '';
 
     return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Banco de Preguntas &mdash; ${esc(nombre || email)}</title><style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     @page { size: A4; margin: 0; }
+    html {
+      width: 210mm;
+      min-height: 297mm;
+      background: #fff;
+    }
     body {
       font-family: 'Times New Roman', Times, serif;
       font-size: 12pt;
       color: #000;
       line-height: 2;
-      padding: 0 2.54cm 0 2.54cm; /* Eliminado padding inferior */
+      width: 210mm;
+      min-height: 297mm;
+      padding: 0 2.54cm 0 2.54cm;
+      background: transparent;
     }
     table { border-collapse: collapse; border-spacing: 0; }
     thead { display: table-header-group; }
-    img { display: block; }
+    img { display: block; max-width: 100%; }
+    .membrete-pdf {
+      position: fixed;
+      inset: 0;
+      width: 210mm;
+      height: 297mm;
+      max-width: none;
+      object-fit: fill;
+      z-index: 0;
+      pointer-events: none;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .contenido-pdf {
+      position: relative;
+      z-index: 1;
+   }
     @media print {
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      html, body {
+        width: 210mm;
+        min-height: 297mm;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
       .no-print { display: none; }
     }
-  </style></head><body>${imgMembrete}<table width="100%"><thead><tr><td style="height: 5.5cm;"></td></tr></thead><tbody><tr><td><div style="margin-top: -0.3cm;"><table width="100%" style="border-top:1.5pt solid #000;border-bottom:1.5pt solid #000;padding:.5em 0;margin-bottom:1.5em;line-height:1.5;"><tr><td style="font-size:14pt;font-weight:bold;">Banco de Preguntas</td><td align="right" style="font-size:11pt;"><strong>Docente:</strong> ${esc(nombre || email)}<br><strong>Correo:</strong> ${esc(email)}<br><strong>Total:</strong> ${preguntasExportables.length} preguntas &nbsp; <strong>Fecha:</strong> ${fecha}</td></tr></table>${preguntasHTML}${firmaHTML}</div></td></tr></tbody></table></body></html>`.trim();
+  </style></head><body>${imgMembrete}<div class="contenido-pdf"><table width="100%"><thead><tr><td style="height: 5.5cm;"></td></tr></thead><tbody><tr><td><div style="margin-top: -0.3cm;"><table width="100%" style="border-top:1.5pt solid #000;border-bottom:1.5pt solid #000;padding:.5em 0;margin-bottom:1.5em;line-height:1.5;"><tr><td style="font-size:14pt;font-weight:bold;">Banco de Preguntas</td><td align="right" style="font-size:11pt;"><strong>Docente:</strong> ${esc(nombre || email)}<br><strong>Correo:</strong> ${esc(email)}<br><strong>Total:</strong> ${preguntasExportables.length} preguntas &nbsp; <strong>Fecha:</strong> ${fecha}</td></tr></table>${preguntasHTML}${firmaHTML}</div></td></tr></tbody></table></div></body></html>`.trim();
   }
 
   // Abre el HTML como blob URL (evita "about:blank" en el pie del diálogo de impresión)

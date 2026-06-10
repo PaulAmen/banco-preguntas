@@ -10,8 +10,41 @@
    import { getBloomConfig } from './lib/bloom.config.js'
    import logo from './assets/logo.png'
 
+   const SESSION_KEY = 'bp_usuario_activo'
+
+   function leerSesionGuardada() {
+      try {
+         const data = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null')
+         if (!data?.email) return null
+         return {
+            email: String(data.email || ''),
+            name: String(data.name || ''),
+            picture: String(data.picture || ''),
+         }
+      } catch {
+         return null
+      }
+   }
+
+   function guardarSesion(userData) {
+      try {
+         localStorage.setItem(SESSION_KEY, JSON.stringify(userData))
+      } catch {
+         /* localStorage no disponible: la sesión queda solo en memoria */
+      }
+   }
+
+   function limpiarSesionGuardada() {
+      try {
+         localStorage.removeItem(SESSION_KEY)
+      } catch {
+         /* localStorage no disponible: no hay nada que limpiar */
+      }
+   }
+
    // ── Estado global ───────────────────────────────────────────
-   let user = $state(null) // { email, name, picture }
+   const usuarioInicial = leerSesionGuardada()
+   let user = $state(usuarioInicial) // { email, name, picture }
    let preguntas = $state([])
    let sharedSubjects = $state([])
    let preguntaEnEdicion = $state(null)
@@ -20,6 +53,7 @@
    let mostrandoRevision = $state(false)
    let esRevisor = $state(false)
    let materiasRevision = $state([])
+   let sesionInicialCargada = $state(!usuarioInicial)
 
    function normalizarTexto(valor) {
       return String(valor || '')
@@ -82,13 +116,24 @@
    })
 
    // ── Login ────────────────────────────────────────────────────
+   $effect(() => {
+      if (!user || sesionInicialCargada) return
+      sesionInicialCargada = true
+      cargarPreguntas()
+   })
+
    async function handleLogin(userData) {
       user = userData
+      sesionInicialCargada = true
+      guardarSesion(userData)
       await cargarPreguntas()
    }
 
    function handleLogout() {
-      google.accounts.id.disableAutoSelect()
+      if (typeof google !== 'undefined') {
+         google.accounts.id.disableAutoSelect()
+      }
+      limpiarSesionGuardada()
       user = null
       preguntas = []
       sharedSubjects = []
