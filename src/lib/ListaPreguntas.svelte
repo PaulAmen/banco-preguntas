@@ -154,10 +154,12 @@
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        canvas.width = 794;
-        canvas.height = 1123;
+        canvas.width = 1600;
+        canvas.height = 2260;
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, 794, 1123);
         membreteWordB64Cache = canvas.toDataURL('image/png');
         resolve(membreteWordB64Cache);
       };
@@ -266,6 +268,7 @@
       background-position: left top;
     }
     table { border-collapse: collapse; width: 100%; }
+    thead { display: table-header-group; }
     .contenido-word {
       position: relative;
     }
@@ -273,18 +276,30 @@
 </head>
 <body${backgroundAttr}>
   <div class="contenido-word">
-    <div style="height:5.2cm;line-height:5.2cm;">&nbsp;</div>
-    <table width="100%" style="border-top:1.5pt solid #000;border-bottom:1.5pt solid #000;padding:.5em 0;margin-bottom:1.5em;">
-      <tr>
-        <td style="font-size:14pt;font-weight:bold;">Banco de Preguntas</td>
-        <td align="right" style="font-size:11pt;">
-          <strong>Docente:</strong> ${esc(nombre || email)}<br>
-          <strong>Correo:</strong> ${esc(email)}<br>
-          <strong>Total:</strong> ${preguntasExportables.length} preguntas &nbsp; <strong>Fecha:</strong> ${fecha}
-        </td>
-      </tr>
+    <table width="100%">
+      <thead>
+        <tr>
+          <td style="height:4.5cm;line-height:4.5cm;">&nbsp;</td>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <table width="100%" style="border-top:1.5pt solid #000;border-bottom:1.5pt solid #000;padding:.5em 0;margin-bottom:1.5em;">
+              <tr>
+                <td style="font-size:14pt;font-weight:bold;">Banco de Preguntas</td>
+                <td align="right" style="font-size:11pt;">
+                  <strong>Docente:</strong> ${esc(nombre || email)}<br>
+                  <strong>Correo:</strong> ${esc(email)}<br>
+                  <strong>Total:</strong> ${preguntasExportables.length} preguntas &nbsp; <strong>Fecha:</strong> ${fecha}
+                </td>
+              </tr>
+            </table>
+            ${preguntasHTML}
+          </td>
+        </tr>
+      </tbody>
     </table>
-    ${preguntasHTML}
   </div>
 </body>
 </html>`.trim();
