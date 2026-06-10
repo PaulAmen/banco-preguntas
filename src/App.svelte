@@ -367,6 +367,9 @@
          <ReviewPreguntas
             preguntas={preguntasRevision}
             storageKey={`bp_revision_index_${user.email}`}
+            email={user.email}
+            nombre={user.name}
+            materiasRevision={materiasRevision}
             onguardar={handleGuardar}
             oncerrar={cerrarRevision}
          />

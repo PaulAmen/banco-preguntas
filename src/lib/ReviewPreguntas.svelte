@@ -3,8 +3,16 @@
    // ReviewPreguntas.svelte — Modo revisión uno a uno
    // ============================================================
 
-   /** @type {{ preguntas: any[], storageKey?: string, onguardar: (p:any)=>Promise<boolean>, oncerrar: ()=>void }} */
-   let { preguntas, storageKey = 'bp_revision_index', onguardar, oncerrar } = $props()
+   /** @type {{ preguntas: any[], storageKey?: string, email?: string, nombre?: string, materiasRevision?: string[], onguardar: (p:any)=>Promise<boolean>, oncerrar: ()=>void }} */
+   let {
+      preguntas,
+      storageKey = 'bp_revision_index',
+      email = '',
+      nombre = '',
+      materiasRevision = [],
+      onguardar,
+      oncerrar,
+   } = $props()
 
    let index = $state(0)
    let guardando = $state(false)
@@ -108,15 +116,233 @@
       if (valor === 'm') return 'Mala'
       return ''
    }
+
+   /** @param {string | null | undefined} valor */
+   function esc(valor) {
+      if (valor == null) return ''
+      return String(valor)
+         .replace(/&/g, '&amp;')
+         .replace(/</g, '&lt;')
+         .replace(/>/g, '&gt;')
+         .replace(/"/g, '&quot;')
+   }
+
+   function fechaLarga() {
+      return new Intl.DateTimeFormat('es-EC', {
+         weekday: 'long',
+         day: '2-digit',
+         month: 'long',
+         year: 'numeric',
+      }).format(new Date())
+   }
+
+   function nombreArchivoSeguro(valor) {
+      return String(valor || 'revisor')
+         .trim()
+         .toLowerCase()
+         .replace(/[^a-z0-9._-]+/g, '-')
+         .replace(/^-+|-+$/g, '')
+   }
+
+   let membreteB64Cache = null
+   async function getMembreteBase64() {
+      if (membreteB64Cache) return membreteB64Cache
+
+      const resp = await fetch(`${import.meta.env.BASE_URL}membrete.png`)
+      const blob = await resp.blob()
+      return new Promise((resolve) => {
+         const reader = new FileReader()
+         reader.onloadend = () => {
+            membreteB64Cache = reader.result
+            resolve(reader.result)
+         }
+         reader.readAsDataURL(blob)
+      })
+   }
+
+   function materiasDelInforme() {
+      const materiasConfiguradas = materiasRevision.filter(
+         (materia) => materia && materia !== '*',
+      )
+      if (materiasConfiguradas.length > 0) return materiasConfiguradas
+
+      return [...new Set(preguntas.map((item) => item.Materia).filter(Boolean))]
+         .sort((a, b) => a.localeCompare(b, 'es'))
+   }
+
+   function resumenPorMateria() {
+      const conteo = new Map()
+      preguntas.forEach((item) => {
+         const materia = item.Materia || 'Sin asignatura'
+         conteo.set(materia, (conteo.get(materia) || 0) + 1)
+      })
+      return [...conteo.entries()].sort(([a], [b]) => a.localeCompare(b, 'es'))
+   }
+
+   function observacionesRevision() {
+      return preguntas
+         .map((item, indice) => ({
+            ...item,
+            Numero_Revision: indice + 1,
+            Tipo_Observacion: etiquetaMala(item.Mala),
+            Observacion: String(item.Comentario_Revision || '').trim(),
+         }))
+         .filter((item) => item.Tipo_Observacion || item.Observacion)
+   }
+
+   function generarInformeHTML(membreteB64 = '') {
+      const fecha = fechaLarga()
+      const revisor = nombre || email || 'DOCENTE REVISOR'
+      const materias = materiasDelInforme()
+      const resumen = resumenPorMateria()
+      const observaciones = observacionesRevision()
+      const totalPreguntas = preguntas.length
+      const imgMembrete = membreteB64
+         ? `<img src="${membreteB64}" alt="" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;">`
+         : ''
+      const materiasHTML = materias.length
+         ? materias
+              .map((materia) => `<p style="margin:0 0 0 1cm;">o ${esc(materia)}.</p>`)
+              .join('')
+         : '<p style="margin:0 0 0 1cm;">o ________________________________.</p>'
+      const resumenHTML = resumen.length
+         ? `
+            <table style="width:100%;border-collapse:collapse;margin:.35cm 0 .15cm 0;">
+               <thead>
+                  <tr>
+                     <th style="border:1pt solid #000;padding:.15cm;text-align:left;">Asignatura</th>
+                     <th style="border:1pt solid #000;padding:.15cm;text-align:center;width:3cm;">Preguntas revisadas</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  ${resumen
+                     .map(
+                        ([materia, cantidad]) => `
+                           <tr>
+                              <td style="border:1pt solid #000;padding:.15cm;">${esc(materia)}</td>
+                              <td style="border:1pt solid #000;padding:.15cm;text-align:center;">${cantidad}</td>
+                           </tr>
+                        `,
+                     )
+                     .join('')}
+               </tbody>
+            </table>
+         `
+         : ''
+      const observacionesHTML = observaciones.length
+         ? `
+            <table style="width:100%;border-collapse:collapse;margin:.35cm 0;">
+               <thead>
+                  <tr>
+                     <th style="border:1pt solid #000;padding:.15cm;text-align:center;width:1.4cm;">No.</th>
+                     <th style="border:1pt solid #000;padding:.15cm;text-align:left;">Asignatura</th>
+                     <th style="border:1pt solid #000;padding:.15cm;text-align:left;">Docente</th>
+                     <th style="border:1pt solid #000;padding:.15cm;text-align:left;">Tipo</th>
+                     <th style="border:1pt solid #000;padding:.15cm;text-align:left;">Detalle</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  ${observaciones
+                     .map(
+                        (item) => `
+                           <tr>
+                              <td style="border:1pt solid #000;padding:.15cm;text-align:center;">${item.Numero_Revision}</td>
+                              <td style="border:1pt solid #000;padding:.15cm;">${esc(item.Materia)}</td>
+                              <td style="border:1pt solid #000;padding:.15cm;">${esc(item.Email_Docente)}</td>
+                              <td style="border:1pt solid #000;padding:.15cm;">${esc(item.Tipo_Observacion || 'Observación')}</td>
+                              <td style="border:1pt solid #000;padding:.15cm;">${esc(item.Observacion || 'Requiere ajuste según el criterio marcado por el revisor.')}</td>
+                           </tr>
+                        `,
+                     )
+                     .join('')}
+               </tbody>
+            </table>
+         `
+         : '<p style="margin:.25cm 0;">No se registraron observaciones específicas en el banco revisado. Se deja este apartado para completar sugerencias generales si corresponde.</p>'
+
+      return `<!DOCTYPE html>
+<html lang="es">
+<head>
+   <meta charset="UTF-8">
+   <title>Informe de revisión - ${esc(revisor)}</title>
+   <style>
+      body {
+         font-family: 'Times New Roman', Times, serif;
+         font-size: 12pt;
+         line-height: 1.5;
+         color: #000;
+         padding: 4.9cm 2.54cm 1.8cm 2.54cm;
+      }
+      p { margin: 0 0 .25cm 0; }
+      h2 { font-size: 12pt; margin: .45cm 0 .2cm 0; }
+      table { border-collapse: collapse; }
+   </style>
+</head>
+<body>
+   ${imgMembrete}
+   <p><strong>Mgtr.</strong></p>
+   <p><strong>Ginger Antonieta Fienco Campozano</strong></p>
+   <p>Responsable del Proceso de Evaluación de Resultados de Aprendizaje.</p>
+   <p style="margin-top:.35cm;"><strong>DE:</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${esc(revisor)}</p>
+   <p><strong>FECHA:</strong> ${esc(fecha)}.</p>
+
+   <h2>2. Antecedentes</h2>
+   <p>En atención a la convocatoria emitida mediante la circular de la referencia, orientada a los docentes de la Carrera Educación, se procedió a realizar la revisión de contenido y estructura de las ${totalPreguntas || '____'} preguntas correspondientes a las materias asignadas. Esta actividad tiene como objetivo fundamental fortalecer los procesos de evaluación académica dentro del Proceso de Evaluación de los Resultados de Aprendizaje PI 2026.</p>
+
+   <h2>3. Desarrollo de la Revisión</h2>
+   <p>De acuerdo con el distributivo establecido, mi responsabilidad como docente revisor abarcó el análisis del banco de preguntas de las siguientes asignaturas:</p>
+   ${materiasHTML}
+   ${resumenHTML}
+   <p>Se analizaron un total de ${totalPreguntas || '____'} preguntas, validando rigurosamente los parámetros exigidos por la coordinación.</p>
+
+   <h2>4. Sugerencias y Observaciones. (GENERAL)</h2>
+   <p>A partir de la revisión técnica realizada, se detallan las siguientes sugerencias aplicadas al banco de preguntas para garantizar la calidad del instrumento de evaluación.</p>
+   <p><strong>DETALLE DE LA MODIFICACIÓN PARA EL DOCENTE (ESTRUCTURA Y CONTEXTO)</strong></p>
+   ${observacionesHTML}
+
+   <h2>5. Conclusión</h2>
+   <p>Se hace la entrega formal del banco de preguntas revisado y corregido, cumpliendo con el compromiso y los plazos estipulados para esta actividad académica. Los documentos adjuntos (matrices/archivos digitales) contienen las modificaciones y justificaciones pertinentes.</p>
+   <p style="margin-top:.6cm;">Atentamente,</p>
+   <div style="height:2.4cm;"></div>
+   <p style="text-align:center;"><strong>${esc(revisor)}</strong></p>
+   <p style="text-align:center;"><strong>DOCENTE CARRERA EDUCACIÓN</strong></p>
+</body>
+</html>`.trim()
+   }
+
+   async function descargarInforme() {
+      const b64 = await getMembreteBase64()
+      const blob = new Blob(['\uFEFF' + generarInformeHTML(b64)], {
+         type: 'application/msword;charset=utf-8',
+      })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `informe-revision-${nombreArchivoSeguro(email || nombre)}.doc`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+   }
 </script>
 
 <div class="review-overlay">
    <div class="review-card">
       <header class="review-header">
          <h2>Revisión de Preguntas ({index + 1} / {total})</h2>
-         <button class="btn-close" onclick={oncerrar} title="Cerrar"
-            >&times;</button
-         >
+         <div class="review-header-actions">
+            <button
+               class="btn-report"
+               onclick={descargarInforme}
+               disabled={total === 0}
+               title="Descargar informe editable de revisión"
+            >
+               Informe
+            </button>
+            <button class="btn-close" onclick={oncerrar} title="Cerrar"
+               >&times;</button
+            >
+         </div>
       </header>
 
       {#if p}
@@ -304,6 +530,32 @@
       font-size: 1.25rem;
       font-weight: 700;
    }
+   .review-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-shrink: 0;
+   }
+   .btn-report {
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      background: rgba(255, 255, 255, 0.14);
+      color: white;
+      padding: 0.42rem 0.8rem;
+      border-radius: 8px;
+      font-weight: 800;
+      cursor: pointer;
+      transition:
+         background 0.2s,
+         border-color 0.2s;
+   }
+   .btn-report:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.24);
+      border-color: rgba(255, 255, 255, 0.85);
+   }
+   .btn-report:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+   }
    .btn-close {
       background: none;
       border: none;
@@ -468,6 +720,16 @@
    }
 
    @media (max-width: 640px) {
+      .review-header {
+         gap: 0.75rem;
+         padding: 0.85rem 1rem;
+      }
+      .review-header h2 {
+         font-size: 1rem;
+      }
+      .btn-report {
+         padding: 0.38rem 0.65rem;
+      }
       .review-body {
          padding: 1rem;
       }
