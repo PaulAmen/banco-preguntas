@@ -159,7 +159,7 @@
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0, 1070, 1513);
+        ctx.drawImage(img, 0, 0, 1060, 1499);
         membreteWordB64Cache = canvas.toDataURL('image/png');
         resolve(membreteWordB64Cache);
       };
