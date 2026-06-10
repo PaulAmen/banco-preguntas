@@ -145,6 +145,7 @@
    }
 
    let membreteB64Cache = null
+   let membreteWordB64Cache = null
    async function getMembreteBase64() {
       if (membreteB64Cache) return membreteB64Cache
 
@@ -157,6 +158,29 @@
             resolve(reader.result)
          }
          reader.readAsDataURL(blob)
+      })
+   }
+
+   async function getMembreteWordBase64() {
+      if (membreteWordB64Cache) return membreteWordB64Cache
+      const original = await getMembreteBase64()
+
+      return new Promise((resolve, reject) => {
+         const img = new Image()
+         img.onload = () => {
+            const canvas = document.createElement('canvas')
+            canvas.width = 1600
+            canvas.height = 2260
+            const ctx = canvas.getContext('2d')
+            ctx.fillStyle = '#ffffff'
+            ctx.fillRect(0, 0, canvas.width, canvas.height)
+            ctx.drawImage(img, 0, 0, 1055, 1492)
+            membreteWordB64Cache = canvas.toDataURL('image/png')
+            resolve(membreteWordB64Cache)
+         }
+         img.onerror = () =>
+            reject(new Error('No se pudo preparar el membrete para Word.'))
+         img.src = original
       })
    }
 
@@ -197,9 +221,7 @@
       const resumen = resumenPorMateria()
       const observaciones = observacionesRevision()
       const totalPreguntas = preguntas.length
-      const imgMembrete = membreteB64
-         ? `<img src="${membreteB64}" alt="" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;">`
-         : ''
+      const backgroundAttr = membreteB64 ? ` background="${membreteB64}"` : ''
       const materiasHTML = materias.length
          ? materias
               .map((materia) => `<p style="margin:0 0 0 1cm;">o ${esc(materia)}.</p>`)
@@ -271,47 +293,61 @@
          font-size: 12pt;
          line-height: 1.5;
          color: #000;
-         padding: 4.9cm 2.54cm 1.8cm 2.54cm;
+         margin: 0;
+         padding: 0 2.54cm 1.8cm 2.54cm;
       }
       p { margin: 0 0 .25cm 0; }
       h2 { font-size: 12pt; margin: .45cm 0 .2cm 0; }
       table { border-collapse: collapse; }
+      thead { display: table-header-group; }
    </style>
 </head>
-<body>
-   ${imgMembrete}
-   <p><strong>Mgtr.</strong></p>
-   <p><strong>Ginger Antonieta Fienco Campozano</strong></p>
-   <p>Responsable del Proceso de Evaluación de Resultados de Aprendizaje.</p>
-   <p style="margin-top:.35cm;"><strong>DE:</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${esc(revisor)}</p>
-   <p><strong>FECHA:</strong> ${esc(fecha)}.</p>
+<body${backgroundAttr}>
+   <table width="100%">
+      <thead>
+         <tr>
+            <td style="height:4.5cm;line-height:4.5cm;">&nbsp;</td>
+         </tr>
+      </thead>
+      <tbody>
+         <tr>
+            <td>
+               <p><strong>Mgtr.</strong></p>
+               <p><strong>Ginger Antonieta Fienco Campozano</strong></p>
+               <p>Responsable del Proceso de Evaluación de Resultados de Aprendizaje.</p>
+               <p style="margin-top:.35cm;"><strong>DE:</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${esc(revisor)}</p>
+               <p><strong>FECHA:</strong> ${esc(fecha)}.</p>
 
-   <h2>2. Antecedentes</h2>
-   <p>En atención a la convocatoria emitida mediante la circular de la referencia, orientada a los docentes de la Carrera Educación, se procedió a realizar la revisión de contenido y estructura de las ${totalPreguntas || '____'} preguntas correspondientes a las materias asignadas. Esta actividad tiene como objetivo fundamental fortalecer los procesos de evaluación académica dentro del Proceso de Evaluación de los Resultados de Aprendizaje PI 2026.</p>
+               <h2>2. Antecedentes</h2>
+               <p>En atención a la convocatoria emitida mediante la circular de la referencia, orientada a los docentes de la Carrera Educación, se procedió a realizar la revisión de contenido y estructura de las ${totalPreguntas || '____'} preguntas correspondientes a las materias asignadas. Esta actividad tiene como objetivo fundamental fortalecer los procesos de evaluación académica dentro del Proceso de Evaluación de los Resultados de Aprendizaje PI 2026.</p>
 
-   <h2>3. Desarrollo de la Revisión</h2>
-   <p>De acuerdo con el distributivo establecido, mi responsabilidad como docente revisor abarcó el análisis del banco de preguntas de las siguientes asignaturas:</p>
-   ${materiasHTML}
-   ${resumenHTML}
-   <p>Se analizaron un total de ${totalPreguntas || '____'} preguntas, validando rigurosamente los parámetros exigidos por la coordinación.</p>
+               <h2>3. Desarrollo de la Revisión</h2>
+               <p>De acuerdo con el distributivo establecido, mi responsabilidad como docente revisor abarcó el análisis del banco de preguntas de las siguientes asignaturas:</p>
+               ${materiasHTML}
+               ${resumenHTML}
+               <p>Se analizaron un total de ${totalPreguntas || '____'} preguntas, validando rigurosamente los parámetros exigidos por la coordinación.</p>
 
-   <h2>4. Sugerencias y Observaciones. (GENERAL)</h2>
-   <p>A partir de la revisión técnica realizada, se detallan las siguientes sugerencias aplicadas al banco de preguntas para garantizar la calidad del instrumento de evaluación.</p>
-   <p><strong>DETALLE DE LA MODIFICACIÓN PARA EL DOCENTE (ESTRUCTURA Y CONTEXTO)</strong></p>
-   ${observacionesHTML}
+               <h2>4. Sugerencias y Observaciones. (GENERAL)</h2>
+               <p>A partir de la revisión técnica realizada, se detallan las siguientes sugerencias aplicadas al banco de preguntas para garantizar la calidad del instrumento de evaluación.</p>
+               <p><strong>DETALLE DE LA MODIFICACIÓN PARA EL DOCENTE (ESTRUCTURA Y CONTEXTO)</strong></p>
+               ${observacionesHTML}
 
-   <h2>5. Conclusión</h2>
-   <p>Se hace la entrega formal del banco de preguntas revisado y corregido, cumpliendo con el compromiso y los plazos estipulados para esta actividad académica. Los documentos adjuntos (matrices/archivos digitales) contienen las modificaciones y justificaciones pertinentes.</p>
-   <p style="margin-top:.6cm;">Atentamente,</p>
-   <div style="height:2.4cm;"></div>
-   <p style="text-align:center;"><strong>${esc(revisor)}</strong></p>
-   <p style="text-align:center;"><strong>DOCENTE CARRERA EDUCACIÓN</strong></p>
+               <h2>5. Conclusión</h2>
+               <p>Se hace la entrega formal del banco de preguntas revisado y corregido, cumpliendo con el compromiso y los plazos estipulados para esta actividad académica. Los documentos adjuntos (matrices/archivos digitales) contienen las modificaciones y justificaciones pertinentes.</p>
+               <p style="margin-top:.6cm;">Atentamente,</p>
+               <div style="height:2.4cm;"></div>
+               <p style="text-align:center;"><strong>${esc(revisor)}</strong></p>
+               <p style="text-align:center;"><strong>DOCENTE CARRERA EDUCACIÓN</strong></p>
+            </td>
+         </tr>
+      </tbody>
+   </table>
 </body>
 </html>`.trim()
    }
 
    async function descargarInforme() {
-      const b64 = await getMembreteBase64()
+      const b64 = await getMembreteWordBase64()
       const blob = new Blob(['\uFEFF' + generarInformeHTML(b64)], {
          type: 'application/msword;charset=utf-8',
       })
