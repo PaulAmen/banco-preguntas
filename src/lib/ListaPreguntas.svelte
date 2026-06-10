@@ -133,6 +133,7 @@
 
   // Carga el membrete como base64 (se cachea tras la primera llamada)
   let membreteB64Cache = null;
+  let membreteWordB64Cache = null;
   async function getMembreteBase64() {
     if (membreteB64Cache) return membreteB64Cache;
     const url = `${import.meta.env.BASE_URL}membrete.png`;
@@ -142,6 +143,26 @@
       const reader = new FileReader();
       reader.onloadend = () => { membreteB64Cache = reader.result; resolve(reader.result); };
       reader.readAsDataURL(blob);
+    });
+  }
+
+  async function getMembreteWordBase64() {
+    if (membreteWordB64Cache) return membreteWordB64Cache;
+    const original = await getMembreteBase64();
+
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 794;
+        canvas.height = 1123;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        membreteWordB64Cache = canvas.toDataURL('image/png');
+        resolve(membreteWordB64Cache);
+      };
+      img.onerror = () => reject(new Error('No se pudo preparar el membrete para Word.'));
+      img.src = original;
     });
   }
 
@@ -225,9 +246,7 @@
     `;
 
     if (esWord) {
-      const imgMembreteWord = membreteB64
-        ? `<img class="membrete-word" src="${membreteB64}" alt="">`
-        : '';
+      const backgroundAttr = membreteB64 ? ` background="${membreteB64}"` : '';
 
       return `<!DOCTYPE html>
 <html lang="es">
@@ -242,29 +261,18 @@
       width: 21cm;
       min-height: 29.7cm;
       margin: 0;
-      padding: 4.9cm 2.54cm 1.8cm 2.54cm;
+      padding: 0 2.54cm 1.8cm 2.54cm;
       position: relative;
     }
     table { border-collapse: collapse; width: 100%; }
-    .membrete-word {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 21cm;
-      height: 29.7cm;
-      z-index: 0;
-      mso-position-horizontal: absolute;
-      mso-position-vertical: absolute;
-    }
     .contenido-word {
       position: relative;
-      z-index: 1;
     }
   </style>
 </head>
-<body>
-  ${imgMembreteWord}
+<body${backgroundAttr}>
   <div class="contenido-word">
+    <div style="height:5.2cm;line-height:5.2cm;">&nbsp;</div>
     <table width="100%" style="border-top:1.5pt solid #000;border-bottom:1.5pt solid #000;padding:.5em 0;margin-bottom:1.5em;">
       <tr>
         <td style="font-size:14pt;font-weight:bold;">Banco de Preguntas</td>
@@ -353,7 +361,7 @@
 
   // Descarga como .doc — Word lo abre y es completamente editable
   async function descargarWord() {
-    const b64 = await getMembreteBase64();
+    const b64 = await getMembreteWordBase64();
     const blob = new Blob(['\uFEFF' + generarHTML(b64, true)], { type: 'application/msword;charset=utf-8' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
